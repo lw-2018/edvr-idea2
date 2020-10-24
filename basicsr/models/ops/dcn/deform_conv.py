@@ -1,3 +1,5 @@
+import sys
+#sys.path.append('/home/wei/exp/EDVR/basicsr/models/ops/dcn/')
 import math
 import torch
 from torch import nn as nn
@@ -383,6 +385,7 @@ class ModulatedDeformConvPack(ModulatedDeformConv):
     def forward(self, x):
         out = self.conv_offset(x)
         o1, o2, mask = torch.chunk(out, 3, dim=1)
+        ### x,y and m
         offset = torch.cat((o1, o2), dim=1)
         mask = torch.sigmoid(mask)
         return modulated_deform_conv(x, offset, mask, self.weight, self.bias,

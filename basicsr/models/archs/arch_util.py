@@ -238,7 +238,9 @@ class DCNv2Pack(ModulatedDeformConvPack):
         o1, o2, mask = torch.chunk(out, 3, dim=1)
         offset = torch.cat((o1, o2), dim=1)
         mask = torch.sigmoid(mask)
-
+    #    print('o1 shape: {p1}'.format(p1=o1.shape))
+   #     print('offset shape: {p2}'.format(p2=offset.shape))
+    #    print('mask shape: {p3}'.format(p3=mask.shape))
         offset_absmean = torch.mean(torch.abs(offset))
         if offset_absmean > 50:
             logger = get_root_logger()
@@ -247,4 +249,4 @@ class DCNv2Pack(ModulatedDeformConvPack):
 
         return modulated_deform_conv(x, offset, mask, self.weight, self.bias,
                                      self.stride, self.padding, self.dilation,
-                                     self.groups, self.deformable_groups)
+                                     self.groups, self.deformable_groups), offset, mask

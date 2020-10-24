@@ -72,17 +72,21 @@ class VideoBaseModel(SRModel):
                         img_name = (f'{split_result[-3]}_{split_result[-2]}_'
                                     f'{split_result[-1].split(".")[0]}')
                     else:  # other datasets, e.g., REDS, Vid4
+                        
                         img_name = osp.splitext(osp.basename(lq_path))[0]
-
+        
                     if self.opt['val']['suffix']:
                         save_img_path = osp.join(
                             self.opt['path']['visualization'], dataset_name,
                             folder,
                             f'{img_name}_{self.opt["val"]["suffix"]}.png')
                     else:
+                        split_result = lq_path.split('/')
+                        img_name = (f'{split_result[-3]}_{split_result[-2]}_'
+                                    f'{split_result[-1].split(".")[0]}')
                         save_img_path = osp.join(
-                            self.opt['path']['visualization'], dataset_name,
-                            folder, f'{img_name}_{self.opt["name"]}.png')
+                            self.opt['path']['visualization'],
+                            folder, f'{img_name}.png')
                 mmcv.imwrite(result_img, save_img_path)
 
             if with_metrics:

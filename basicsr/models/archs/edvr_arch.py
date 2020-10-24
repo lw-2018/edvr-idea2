@@ -85,18 +85,25 @@ class PCDAlignment(nn.Module):
         """
         # Pyramids
         upsampled_offset, upsampled_feat = None, None
+        offset_frame = []
+        mask_frame = []
         for i in range(3, 0, -1):
             level = f'l{i}'
             offset = torch.cat([nbr_feat_l[i - 1], ref_feat_l[i - 1]], dim=1)
             offset = self.lrelu(self.offset_conv1[level](offset))
+          #  print('1 l1:offset '+ str(i)+ ':{w}'.format(w=offset.shape))
             if i == 3:
                 offset = self.lrelu(self.offset_conv2[level](offset))
             else:
                 offset = self.lrelu(self.offset_conv2[level](torch.cat(
                     [offset, upsampled_offset], dim=1)))
                 offset = self.lrelu(self.offset_conv3[level](offset))
-
-            feat = self.dcn_pack[level](nbr_feat_l[i - 1], offset)
+                
+           # print('2 l1:offset '+ str(i) +':{w}'.format(w=offset.shape))
+            feat,offset_pre,mask_pre = self.dcn_pack[level](nbr_feat_l[i - 1], offset)
+            if(i==1):
+                offset_frame.append(offset_pre)
+                mask_frame.append(mask_pre)
             if i < 3:
                 feat = self.feat_conv[level](
                     torch.cat([feat, upsampled_feat], dim=1))
@@ -108,13 +115,16 @@ class PCDAlignment(nn.Module):
                 # the magnitude.
                 upsampled_offset = self.upsample(offset) * 2
                 upsampled_feat = self.upsample(feat)
-
+                
         # Cascading
         offset = torch.cat([feat, ref_feat_l[0]], dim=1)
         offset = self.lrelu(
             self.cas_offset_conv2(self.lrelu(self.cas_offset_conv1(offset))))
-        feat = self.lrelu(self.cas_dcnpack(feat, offset))
-        return feat
+        feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset)
+        feat = self.lrelu(feat)
+        offset_frame.append(offset_pre)
+        mask_frame.append(mask_pre)
+        return feat, offset_frame, mask_frame
 
 
 class TSAFusion(nn.Module):
@@ -394,14 +404,21 @@ class EDVR(nn.Module):
             feat_l3[:, self.center_frame_idx, :, :, :].clone()
         ]
         aligned_feat = []
+        aligned_offset = []
+        aligned_mask = []
         for i in range(t):
             nbr_feat_l = [  # neighboring feature list
                 feat_l1[:, i, :, :, :].clone(), feat_l2[:, i, :, :, :].clone(),
                 feat_l3[:, i, :, :, :].clone()
             ]
-            aligned_feat.append(self.pcd_align(nbr_feat_l, ref_feat_l))
+            feature_frame , offset_frame, mask_frame = self.pcd_align(nbr_feat_l, ref_feat_l)
+            offset_frame = torch.stack(offset_frame,dim=1)
+            mask_frame = torch.stack(mask_frame,dim=1)
+            aligned_feat.append(feature_frame)
+            aligned_offset.append(offset_frame)
+            aligned_mask.append(mask_frame)
         aligned_feat = torch.stack(aligned_feat, dim=1)  # (b, t, c, h, w)
-
+        aligned_offset = torch.stack(aligned_offset,dim=1)
         if not self.with_tsa:
             aligned_feat = aligned_feat.view(b, -1, h, w)
         feat = self.fusion(aligned_feat)
@@ -417,4 +434,4 @@ class EDVR(nn.Module):
             base = F.interpolate(
                 x_center, scale_factor=4, mode='bilinear', align_corners=False)
         out += base
-        return out
+        return out,aligned_offset,aligned_mask

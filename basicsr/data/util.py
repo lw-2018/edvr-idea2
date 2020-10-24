@@ -24,6 +24,17 @@ def read_img_seq(path, require_mod_crop=False, scale=1):
     else:
         img_paths = sorted([osp.join(path, v) for v in mmcv.scandir(path)])
     imgs = [mmcv.imread(v).astype(np.float32) / 255. for v in img_paths]
+#     imgs = []
+#     for v in img_paths:
+#         imm = mmcv.imread(v).astype(np.float32) / 255.
+#         w = v[:-4]+'_40.png'
+#         imm_3d = mmcv.imread(w).astype(np.float32) / 255.
+#         imm_concat_3d = np.concatenate((imm,imm_3d),axis=2)
+#         print(imm_concat_3d.shape)
+#         print(imm_3d.shape)
+#         imgs.append(imm_concat_3d)
+   # path_hr_3d = img_paths[4][-4]+'_160.png'
+    
     if require_mod_crop:
         imgs = [mod_crop(img, scale) for img in imgs]
     imgs = totensor(imgs, bgr2rgb=True, float32=True)

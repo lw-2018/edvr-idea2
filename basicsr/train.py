@@ -7,7 +7,8 @@ import time
 import torch
 from mmcv.runner import get_dist_info, get_time_str, init_dist
 from os import path as osp
-
+import sys
+sys.path.append('.')
 from basicsr.data import create_dataloader, create_dataset
 from basicsr.data.data_sampler import EnlargedSampler
 from basicsr.data.prefetch_dataloader import CPUPrefetcher, CUDAPrefetcher
@@ -35,7 +36,7 @@ def main():
     # distributed training settings
     if args.launcher == 'none':  # non-distributed training
         opt['dist'] = False
-        print('Disable distributed training.', flush=True)
+        print('Disable distributed training.')
     else:
         opt['dist'] = True
         if args.launcher == 'slurm' and 'dist_params' in opt:
@@ -59,8 +60,8 @@ def main():
     # mkdir and loggers
     if resume_state is None:
         make_exp_dirs(opt)
-    log_file = osp.join(opt['path']['log'],
-                        f"train_{opt['name']}_{get_time_str()}.log")
+
+    log_file = './test.log'
     logger = get_root_logger(
         logger_name='basicsr', log_level=logging.INFO, log_file=log_file)
     logger.info(get_env_info())
@@ -80,11 +81,11 @@ def main():
         init_wandb_logger(opt)
 
     # random seed
+    print('1')
     seed = opt['manual_seed']
-    if seed is None:
-        seed = random.randint(1, 10000)
-        opt['manual_seed'] = seed
-    logger.info(f'Random seed: {seed}')
+#     if seed is None:
+#         seed = random.randint(1, 10000)
+#         opt['manual_seed'] = seed
     set_random_seed(seed + rank)
 
     torch.backends.cudnn.benchmark = True
