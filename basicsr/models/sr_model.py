@@ -4,11 +4,11 @@ import torch
 from collections import OrderedDict
 from copy import deepcopy
 from os import path as osp
-
+import numpy as np
 from basicsr.models import networks as networks
 from basicsr.models.base_model import BaseModel
 from basicsr.utils import ProgressBar, get_root_logger, tensor2img
-
+import torch.nn.functional as F
 loss_module = importlib.import_module('basicsr.models.losses')
 metric_module = importlib.import_module('basicsr.metrics')
 
@@ -23,8 +23,9 @@ class SRModel(BaseModel):
         self.net_g = networks.define_net_g(deepcopy(opt['network_g']))
         self.net_g = self.model_to_device(self.net_g)
         self.print_network(self.net_g)
-        self.offset_frame=[]
+        self.offset_frame= []
         self.offset_mask = []
+        self.flow =[]
         # load pretrained models
         load_path = self.opt['path'].get('pretrain_model_g', None)
         if load_path is not None:
@@ -63,7 +64,7 @@ class SRModel(BaseModel):
         else:
             self.cri_offset = None
             
-        print(self.cri_offset)
+       # print(self.cri_offset)
         if self.cri_pix is None and self.cri_perceptual is None:
             raise ValueError('Both pixel and perceptual losses are None.')
         
@@ -94,17 +95,15 @@ class SRModel(BaseModel):
         self.lq = data['lq'].to(self.device)
         if 'gt' in data:
             self.gt = data['gt'].to(self.device)
+        if 'flow' in data:
+            self.flow = data['flow'].to(self.device)
 
     def optimize_parameters(self, current_iter):
         self.optimizer_g.zero_grad()
         self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
        # print(self.offset_frames)
         
-        import numpy as np
-        a=np.array(self.offset_frames)
-        np.save('/home/wei/exp/EDVR/a.npy',a)   # 保存为.npy格式
-        # 读取
-        # print()
+
         l_total = 0
         loss_dict = OrderedDict()
         # pixel loss
@@ -113,11 +112,34 @@ class SRModel(BaseModel):
             l_total += l_pix
             loss_dict['l_pix'] = l_pix
         # offset loss
-        if self.cri_offset:
-            l_offset = self.cri_offset(self.output,self.gt)
-            l_total += l_offset
-            loss_dict['l_offset'] = l_offset
-        print(self.output.shape)
+        ######
+        b,t,p,c,h,w = self.offset_frames.size()
+        
+        self.offset_frames = self.offset_frames.view(b,t,p*8,3,3,2,h,w).permute(2,3,4, 0,1,5,6,7)
+        l_offset = 0
+        for group in self.offset_frames:
+            group = F.pad(group,((0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(1,1),(1,1)),'constant',0)
+            for i in range(0,3):
+                for j in range(0,3):
+                    group[i][j] = group[:,:,:,;,:,:,i:i+h,j:j+h]
+                    print(group.shape ,self.flow.shape)
+            #l_offset += self.cri_offset(group,self.flow)
+#         l_total += l_offset
+#         loss_dict['l_offset'] = l_offset
+       # self.offset_frames_4 = self.offset_frames[:,3]
+       # test__ = torch.stack(self.offset_frames[:][:], dim=0)
+        print(self.offset_frames.shape)
+        #print(self.flow.size())
+      # self.offset_frames_3 = self.offset_frames_3.view(b,t,c,h,w)
+        #b,t,c,448,448
+        #b,t,2*9,448,448
+        #
+        ######
+#         if self.cri_offset:
+#             l_offset = self.cri_offset(self.offset_frames_3,self.flow) + self.cri_offset(self.offset_frames_4,self.flow)
+#             l_total += l_offset
+#             loss_dict['l_offset'] = l_offset
+       # print(self.output.shape)
         # perceptual loss
         if self.cri_perceptual:
             l_percep, l_style = self.cri_perceptual(self.output, self.gt)
@@ -217,7 +239,7 @@ class SRModel(BaseModel):
     def get_current_visuals(self):
         out_dict = OrderedDict()
         out_dict['lq'] = self.lq.detach().cpu()
-        out_dict['result'] = self.output.detach().cpu()
+        out_dict['result'] = self.output[0].detach().cpu()
         if hasattr(self, 'gt'):
             out_dict['gt'] = self.gt.detach().cpu()
         return out_dict

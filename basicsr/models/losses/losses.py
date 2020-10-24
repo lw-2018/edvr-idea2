@@ -26,7 +26,7 @@ def charbonnier_loss(pred, target, eps=1e-12):
 
 @weighted_loss
 def offset_loss(pred, target):
-    return torch.where(abs(pred - target) >= t, 1*abs(pred - target), 0 * abs(pred - target)) 
+    return torch.where(abs(pred - target) >= 1, 1*abs(pred - target), 0 * abs(pred - target)) 
 
     
 class OffsetLoss(nn.Module):

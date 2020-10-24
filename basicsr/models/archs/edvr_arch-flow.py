@@ -101,9 +101,8 @@ class PCDAlignment(nn.Module):
                 
            # print('2 l1:offset '+ str(i) +':{w}'.format(w=offset.shape))
             feat,offset_pre,mask_pre = self.dcn_pack[level](nbr_feat_l[i - 1], offset)
-            if(i==1):
-                offset_frame.append(offset_pre)
-                mask_frame.append(mask_pre)
+            offset_frame.append(offset_pre)
+            mask_frame.append(mask_pre)
             if i < 3:
                 feat = self.feat_conv[level](
                     torch.cat([feat, upsampled_feat], dim=1))
@@ -356,8 +355,8 @@ class EDVR(nn.Module):
         self.reconstruction = make_layer(
             ResidualBlockNoBN, num_reconstruct_block, num_feat=num_feat)
         # upsample
-        self.upconv1 = nn.Conv2d(num_feat, num_feat * 4, 3, 1, 1)
-        self.upconv2 = nn.Conv2d(num_feat, 64 * 4, 3, 1, 1)
+#         self.upconv1 = nn.Conv2d(num_feat, num_feat * 4, 3, 1, 1)
+#         self.upconv2 = nn.Conv2d(num_feat, 64 * 4, 3, 1, 1)
         self.pixel_shuffle = nn.PixelShuffle(2)
         self.conv_hr = nn.Conv2d(64, 64, 3, 1, 1)
         self.conv_last = nn.Conv2d(64, 3, 3, 1, 1)
@@ -366,24 +365,20 @@ class EDVR(nn.Module):
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
     def forward(self, x):
+        
         b, t, c, h, w = x.size()
-        if self.hr_in:
-            assert h % 16 == 0 and w % 16 == 0, (
-                'The height and width must be multiple of 16.')
-        else:
-            assert h % 4 == 0 and w % 4 == 0, (
-                'The height and width must be multiple of 4.')
+        x = F.interpolate(
+                x.view(b*t,c,h,w), scale_factor=4, mode='bilinear', align_corners=False)
+        x = x.view(b,t,c,4*h,4*w)
+        b, t, c, h, w = x.size()
 
         x_center = x[:, self.center_frame_idx, :, :, :].contiguous()
 
         # extract features for each frame
         # L1
-        if self.with_predeblur:
-            feat_l1 = self.conv_1x1(self.predeblur(x.view(-1, c, h, w)))
-            if self.hr_in:
-                h, w = h // 4, w // 4
-        else:
-            feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
+    #    out = self.conv_frist(x.view(-1,c,h,w))
+
+        feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
 
         feat_l1 = self.feature_extraction(feat_l1)
         # L2
@@ -412,26 +407,19 @@ class EDVR(nn.Module):
                 feat_l3[:, i, :, :, :].clone()
             ]
             feature_frame , offset_frame, mask_frame = self.pcd_align(nbr_feat_l, ref_feat_l)
-            offset_frame = torch.stack(offset_frame,dim=1)
-            mask_frame = torch.stack(mask_frame,dim=1)
             aligned_feat.append(feature_frame)
             aligned_offset.append(offset_frame)
             aligned_mask.append(mask_frame)
         aligned_feat = torch.stack(aligned_feat, dim=1)  # (b, t, c, h, w)
-        aligned_offset = torch.stack(aligned_offset,dim=1)
+
         if not self.with_tsa:
             aligned_feat = aligned_feat.view(b, -1, h, w)
         feat = self.fusion(aligned_feat)
 
         out = self.reconstruction(feat)
-        out = self.lrelu(self.pixel_shuffle(self.upconv1(out)))
-        out = self.lrelu(self.pixel_shuffle(self.upconv2(out)))
-        out = self.lrelu(self.conv_hr(out))
         out = self.conv_last(out)
-        if self.hr_in:
-            base = x_center
-        else:
-            base = F.interpolate(
-                x_center, scale_factor=4, mode='bilinear', align_corners=False)
+        
+        base = x_center
+   
         out += base
         return out,aligned_offset,aligned_mask

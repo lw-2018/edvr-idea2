@@ -126,29 +126,7 @@ class Vimeo90KDataset(data.Dataset):
         # img_lqs: (t, c, h, w)
         # img_gt: (c, h, w)
         # key: str
-        flow_path = f'{img_gt_path}'[:-7]+'flow_7.npy'
-        flow = np.load(flow_path,allow_pickle=True)
-        ### get 18
-#         ztm = np.load(path_flow,allow_pickle=True)
-#         result_7 = []
-#         for test in ztm:
-#             test = np.transpose(test, [2,1,0]) 
-#             width = test.shape[1]
-#             height = test.shape[2]
-#             ndarray=np.pad(test,((0,0),(1,1),(1,1)),'constant', constant_values=0)
-#             result=[]
-#             for i in range(0,3):
-#                 for j in range(0,3): 
-#                     result.append(ndarray[:,i:i+448,j:j+448])
-
-#             result = np.array(result).reshape(18,448,448)
-#             #result = np.repeat(result,8,axis=0)
-#             result_7.append(np.array(result))
-#         save_path = path_flow.replace('flow.npy','flow_7.npy')
-#         np.save(save_path,np.array(result_7))
-        ### get18
-        #return np.array(result_7)
-        return {'lq': img_lqs, 'gt': img_gt, 'key': key, 'flow':flow}
+        return {'lq': img_lqs, 'gt': img_gt, 'key': key}
 
     def __len__(self):
         return len(self.keys)
