@@ -246,7 +246,7 @@ class DCNv2Pack(ModulatedDeformConvPack):
             logger = get_root_logger()
             logger.warning(
                 f'Offset abs mean is {offset_absmean}, larger than 50.')
-
+        
         return modulated_deform_conv(x, offset, mask, self.weight, self.bias,
                                      self.stride, self.padding, self.dilation,
                                      self.groups, self.deformable_groups), offset, mask
