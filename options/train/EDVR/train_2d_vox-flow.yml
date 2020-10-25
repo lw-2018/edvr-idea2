@@ -13,7 +13,7 @@ datasets:
     dataroot_gt: /data2/wei/vox-100/GT
     dataroot_lq: /data2/wei/vox-100/LR_112
     dataroot_flow: ~
-    meta_info_file: /home/wei/exp/data_process/vox_100_train_flow.txt  #############dododo
+    meta_info_file: basicsr/data/meta_info/vox_100_train_flow.txt  #############dododo
     val_partition: Vimeo90KDateset # set to 'official' when use the official validation partition
     io_backend:
       type: disk
@@ -37,7 +37,7 @@ datasets:
     type: VideoTestVimeo90KDataset
     dataroot_gt: /data2/wei/vox-100/GT
     dataroot_lq: /data2/wei/vox-100/LR_112
-    meta_info_file: /home/wei/exp/data_process/vox_100_test_flow.txt  ##########dododo
+    meta_info_file: basicsr/data/meta_info/vox_100_test_flow.txt  ##########dododo
     # change to 'meta_info_REDSofficial4_test_GT' when use the official validation partition
     io_backend:
       type: disk
