@@ -114,11 +114,11 @@ class SRModel(BaseModel):
             loss_dict['l_pix'] = l_pix
         # offset loss
         ######
-        if self.cri_offset:
-            l_offset = 0
-            b,t,p,c,h,w = self.offset_frames.size()
-            self.offset_frames = self.offset_frames.view(b,t,p*8,3,3,2,h,w).permute(2,3,4, 0,1,5,6,7)  ##16, 3(batchsize), 3, 3, 7, 2, 112, 112
-            self.flow = F.pad(self.flow,(1,1,1,1),'constant',0)   #3(b) 7 2 450 450
+#         if self.cri_offset:
+#             l_offset = 0
+#             b,t,p,c,h,w = self.offset_frames.size()
+#             self.offset_frames = self.offset_frames.view(b,t,p*8,3,3,2,h,w).permute(2,3,4, 0,1,5,6,7)  ##16, 3(batchsize), 3, 3, 7, 2, 112, 112
+#             self.flow = F.pad(self.flow,(1,1,1,1),'constant',0)   #3(b) 7 2 450 450
             #print(self.flow.shape)
 #             for group in self.offset_frames:
 #                 for i in range(0,3):

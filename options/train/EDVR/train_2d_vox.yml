@@ -1,25 +1,25 @@
 # general settings
-name: train_3d_160_out
+name: train_vox
 model_type: EDVRModel
 scale: 4
-num_gpu: 2  # set num_gpu: 0 for cpu mode
+num_gpu: 1  # set num_gpu: 0 for cpu mode
 manual_seed: 10
 
 # dataset and data loader settings
 datasets:
   train:
-    name: YTB
+    name: VOX
     type: Vimeo90KDataset
-    dataroot_gt: datasets/YTB-2/GT
-    dataroot_lq: datasets/3d
+    dataroot_gt: /data2/wei/vox-100/GT
+    dataroot_lq: /data2/wei/vox-100/LR_112
     dataroot_flow: ~
-    meta_info_file: basicsr/data/meta_info/3d_train.txt
+    meta_info_file: /home/wei/exp/data_process/vox_100_train_flow.txt  #############dododo
     val_partition: Vimeo90KDateset # set to 'official' when use the official validation partition
     io_backend:
       type: disk
 
     num_frame: 7
-    gt_size: 160
+    gt_size: 448
     interval_list: [1]
     random_reverse: false
     use_flip: true
@@ -27,17 +27,17 @@ datasets:
 
     # data loader
     use_shuffle: true
-    num_worker_per_gpu: 3
-    batch_size_per_gpu: 16
+    num_worker_per_gpu: 6
+    batch_size_per_gpu: 1
     dataset_enlarge_ratio: 200
     prefetch_mode: ~
 
   val:
-    name: YTB
+    name: VOX
     type: VideoTestVimeo90KDataset
-    dataroot_gt: datasets/YTB-2/GT
-    dataroot_lq: datasets/3d
-    meta_info_file: basicsr/data/meta_info/3d_val.txt
+    dataroot_gt: /data2/wei/vox-100/GT
+    dataroot_lq: /data2/wei/vox-100/LR_112
+    meta_info_file: /home/wei/exp/data_process/vox_100_test_flow.txt  ##########dododo
     # change to 'meta_info_REDSofficial4_test_GT' when use the official validation partition
     io_backend:
       type: disk
@@ -47,25 +47,33 @@ datasets:
     padding: reflection_circle
 
 
-#network structures
+# network structures
+# network_g:
+#   type: EDVR
+#   num_in_ch: 3
+#   num_out_ch: 3
+#   num_feat: 128
+#   num_frame: 7
+#   deformable_groups: 8
+#   num_extract_block: 5
+#   num_reconstruct_block: 40
+#   center_frame_idx: ~
+#   hr_in: false
+#   with_predeblur: false
+#   with_tsa: false
 network_g:
   type: EDVR
   num_in_ch: 3
   num_out_ch: 3
-  num_feat: 128
+  num_feat: 16
   num_frame: 7
-  deformable_groups: 8
-  num_extract_block: 5
-  num_reconstruct_block: 40
+  deformable_groups: 4
+  num_extract_block: 1
+  num_reconstruct_block: 1
   center_frame_idx: ~
   hr_in: false
   with_predeblur: false
   with_tsa: false
-
-
-
-
-
 # path
 path:
   pretrain_model_g: ~
@@ -86,7 +94,7 @@ train:
     restart_weights: [1, 0.5, 0.5, 0.5, 0.5]
     eta_min: !!float 1e-7
 
-  total_iter: 200000
+  total_iter: 600000
   warmup_iter: -1  # no warm up
   tsa_iter: 1
   dcn_lr_mul: 1
