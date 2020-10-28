@@ -1,5 +1,5 @@
 # general settings
-name: train_vox
+name: train_320_w_off_100
 model_type: EDVRModel
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
@@ -10,16 +10,16 @@ datasets:
   train:
     name: VOX
     type: Vimeo90KDataset
-    dataroot_gt: /data2/wei/vox-100/GT
-    dataroot_lq: /data2/wei/vox-100/LR_112
+    dataroot_gt: /data2/wei/vox-320/GT
+    dataroot_lq: /data2/wei/vox-320/LR
     dataroot_flow: ~
-    meta_info_file: basicsr/data/meta_info/vox_100_train_flow.txt  #############dododo
+    meta_info_file: basicsr/data/meta_info/vox_320_train.txt  #############dododo
     val_partition: Vimeo90KDateset # set to 'official' when use the official validation partition
     io_backend:
       type: disk
 
     num_frame: 7
-    gt_size: 448
+    gt_size: 320
     interval_list: [1]
     random_reverse: false
     use_flip: true
@@ -27,17 +27,17 @@ datasets:
 
     # data loader
     use_shuffle: true
-    num_worker_per_gpu: 6
-    batch_size_per_gpu: 1
+    num_worker_per_gpu: 16
+    batch_size_per_gpu: 4
     dataset_enlarge_ratio: 200
     prefetch_mode: ~
 
   val:
     name: VOX
     type: VideoTestVimeo90KDataset
-    dataroot_gt: /data2/wei/vox-100/GT
-    dataroot_lq: /data2/wei/vox-100/LR_112
-    meta_info_file: basicsr/data/meta_info/vox_100_test_flow.txt  ##########dododo
+    dataroot_gt: /data2/wei/vox-320/GT
+    dataroot_lq: /data2/wei/vox-320/LR
+    meta_info_file: basicsr/data/meta_info/vox_320_test.txt  ##########dododo
     # change to 'meta_info_REDSofficial4_test_GT' when use the official validation partition
     io_backend:
       type: disk
@@ -65,11 +65,11 @@ network_g:
   type: EDVR
   num_in_ch: 3
   num_out_ch: 3
-  num_feat: 32
+  num_feat: 64
   num_frame: 7
-  deformable_groups: 2
-  num_extract_block: 1
-  num_reconstruct_block: 1
+  deformable_groups: 8
+  num_extract_block: 5
+  num_reconstruct_block: 10
   center_frame_idx: ~
   hr_in: false
   with_predeblur: false
@@ -108,7 +108,7 @@ train:
   # losses
   offset_opt:
     type: OffsetLoss
-    loss_weight: 1.0
+    loss_weight: 100.0
     
 # validation settings
 val:

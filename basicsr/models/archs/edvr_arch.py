@@ -57,7 +57,7 @@ class PCDAlignment(nn.Module):
 
         # Cascading dcn
         self.cas_offset_conv1 = nn.Conv2d(num_feat * 2, num_feat, 3, 1, 1)
-    #    self.cas_offset_conv2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
+        self.cas_offset_conv2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
         self.cas_dcnpack = DCNv2Pack(
             num_feat,
             num_feat,
@@ -118,13 +118,13 @@ class PCDAlignment(nn.Module):
                 
         # Cascading
         offset = torch.cat([feat, ref_feat_l[0]], dim=1)
-        offset = self.lrelu(self.cas_offset_conv1(offset))
+        offset = self.lrelu(
+            self.cas_offset_conv2(self.lrelu(self.cas_offset_conv1(offset))))
         feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset)
         feat = self.lrelu(feat)
         offset_frame.append(offset_pre)
         mask_frame.append(mask_pre)
         return feat, offset_frame, mask_frame
-
 
 
 class TSAFusion(nn.Module):
@@ -356,38 +356,42 @@ class EDVR(nn.Module):
         self.reconstruction = make_layer(
             ResidualBlockNoBN, num_reconstruct_block, num_feat=num_feat)
         # upsample
-#         self.upconv1 = nn.Conv2d(num_feat, num_feat * 4, 3, 1, 1)
-#         self.upconv2 = nn.Conv2d(num_feat, 64 * 4, 3, 1, 1)
+        self.upconv1 = nn.Conv2d(num_feat, num_feat * 4, 3, 1, 1)
+        self.upconv2 = nn.Conv2d(num_feat, 64 * 4, 3, 1, 1)
         self.pixel_shuffle = nn.PixelShuffle(2)
-    #    self.conv_hr = nn.Conv2d(64, 64, 3, 1, 1)
-        self.conv_last = nn.Conv2d(num_feat, 3, 3, 1, 1)
+        self.conv_hr = nn.Conv2d(64, 64, 3, 1, 1)
+        self.conv_last = nn.Conv2d(64, 3, 3, 1, 1)
 
         # activation function
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
     def forward(self, x):
-        
         b, t, c, h, w = x.size()
-        x = F.interpolate(
-                x.view(b*t,c,h,w), scale_factor=4, mode='bilinear', align_corners=False)
-        x = x.view(b,t,c,4*h,4*w)
-        b, t, c, h, w = x.size()
+        if self.hr_in:
+            assert h % 16 == 0 and w % 16 == 0, (
+                'The height and width must be multiple of 16.')
+        else:
+            assert h % 4 == 0 and w % 4 == 0, (
+                'The height and width must be multiple of 4.')
 
         x_center = x[:, self.center_frame_idx, :, :, :].contiguous()
 
         # extract features for each frame
         # L1
-    #    out = self.conv_frist(x.view(-1,c,h,w))
-
-        feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
+        if self.with_predeblur:
+            feat_l1 = self.conv_1x1(self.predeblur(x.view(-1, c, h, w)))
+            if self.hr_in:
+                h, w = h // 4, w // 4
+        else:
+            feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
 
         feat_l1 = self.feature_extraction(feat_l1)
         # L2
         feat_l2 = self.lrelu(self.conv_l2_1(feat_l1))
-     #   feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
+        feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
         # L3
         feat_l3 = self.lrelu(self.conv_l3_1(feat_l2))
-      #  feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
+        feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
 
         feat_l1 = feat_l1.view(b, t, -1, h, w)
         feat_l2 = feat_l2.view(b, t, -1, h // 2, w // 2)
@@ -415,15 +419,19 @@ class EDVR(nn.Module):
             aligned_mask.append(mask_frame)
         aligned_feat = torch.stack(aligned_feat, dim=1)  # (b, t, c, h, w)
         aligned_offset = torch.stack(aligned_offset,dim=1)
-
         if not self.with_tsa:
             aligned_feat = aligned_feat.view(b, -1, h, w)
         feat = self.fusion(aligned_feat)
 
         out = self.reconstruction(feat)
+        out = self.lrelu(self.pixel_shuffle(self.upconv1(out)))
+        out = self.lrelu(self.pixel_shuffle(self.upconv2(out)))
+        out = self.lrelu(self.conv_hr(out))
         out = self.conv_last(out)
-        
-        base = x_center
-   
+        if self.hr_in:
+            base = x_center
+        else:
+            base = F.interpolate(
+                x_center, scale_factor=4, mode='bilinear', align_corners=False)
         out += base
         return out,aligned_offset,aligned_mask
