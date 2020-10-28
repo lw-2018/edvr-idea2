@@ -126,8 +126,11 @@ class Vimeo90KDataset(data.Dataset):
         # img_lqs: (t, c, h, w)
         # img_gt: (c, h, w)
         # key: str
-        flow_path = f'{img_gt_path}'[:-7]+'flow_7.npy'
+        flow_path = f'{img_gt_path}'[:-7]+'flow_80.npy'
         flow = np.load(flow_path,allow_pickle=True)
+        flow = flow / 4.0
+        flow = np.transpose(flow,[0,3,1,2])  #7 2 448 448
+        #print(flow.shape)
         ### get 18
 #         ztm = np.load(path_flow,allow_pickle=True)
 #         result_7 = []

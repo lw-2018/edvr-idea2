@@ -101,6 +101,7 @@ class SRModel(BaseModel):
     def optimize_parameters(self, current_iter):
         self.optimizer_g.zero_grad()
         self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
+        #print('max:offset :', self.offset_frames.max())
        # print(self.offset_frames)
         
 
@@ -113,34 +114,28 @@ class SRModel(BaseModel):
             loss_dict['l_pix'] = l_pix
         # offset loss
         ######
-        b,t,p,c,h,w = self.offset_frames.size()
-        
-        self.offset_frames = self.offset_frames.view(b,t,p*8,3,3,2,h,w).permute(2,3,4, 0,1,5,6,7)
-        l_offset = 0
-        for group in self.offset_frames:
-            group = F.pad(group,((0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(1,1),(1,1)),'constant',0)
-            for i in range(0,3):
-                for j in range(0,3):
-                    group[i][j] = group[:,:,:,;,:,:,i:i+h,j:j+h]
-                    print(group.shape ,self.flow.shape)
-            #l_offset += self.cri_offset(group,self.flow)
-#         l_total += l_offset
-#         loss_dict['l_offset'] = l_offset
+        if self.cri_offset:
+            l_offset = 0
+            b,t,p,c,h,w = self.offset_frames.size()
+            self.offset_frames = self.offset_frames.view(b,t,p*8,3,3,2,h,w).permute(2,3,4, 0,1,5,6,7)  ##16, 3(batchsize), 3, 3, 7, 2, 112, 112
+            self.flow = F.pad(self.flow,(1,1,1,1),'constant',0)   #3(b) 7 2 450 450
+            #print(self.flow.shape)
+            for group in self.offset_frames:
+                for i in range(0,3):
+                    for j in range(0,3):
+                        #print(group[i][j].shape ,self.flow[:,:,:,i:i+h,j:j+h].shape)
+                        l_offset += self.cri_offset(group[i][j],self.flow[:,:,:,i:i+h,j:j+h])
+            l_total += l_offset
+            loss_dict['l_offset'] = l_offset
        # self.offset_frames_4 = self.offset_frames[:,3]
        # test__ = torch.stack(self.offset_frames[:][:], dim=0)
-        print(self.offset_frames.shape)
-        #print(self.flow.size())
-      # self.offset_frames_3 = self.offset_frames_3.view(b,t,c,h,w)
+        #print(self.offset_frames.shape)
+        #self.offset_frames_3 = self.offset_frames_3.view(b,t,c,h,w)
         #b,t,c,448,448
         #b,t,2*9,448,448
         #
         ######
-#         if self.cri_offset:
-#             l_offset = self.cri_offset(self.offset_frames_3,self.flow) + self.cri_offset(self.offset_frames_4,self.flow)
-#             l_total += l_offset
-#             loss_dict['l_offset'] = l_offset
-       # print(self.output.shape)
-        # perceptual loss
+
         if self.cri_perceptual:
             l_percep, l_style = self.cri_perceptual(self.output, self.gt)
             if l_percep is not None:
