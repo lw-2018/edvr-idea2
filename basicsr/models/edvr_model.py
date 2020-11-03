@@ -69,3 +69,38 @@ class EDVRModel(VideoBaseModel):
                     self.net_g.find_unused_parameters = False
 
         super(VideoBaseModel, self).optimize_parameters(current_iter)
+
+
+
+#     def optimize_parameters(self, current_iter):
+#         if(int(current_iter/10000)%2 == 0):
+#             for name, param in self.net_g.named_parameters():
+#                 if current_iter==1:
+#                     print(name)
+#                 if 'offset' in name:
+#                     param.requires_grad = True
+#                 else:
+#                     param.requires_grad = True
+#         else:
+#             for name, param in self.net_g.named_parameters():
+#                 if 'offset' not in name:
+#                     param.requires_grad = False
+#                 else:
+#                     param.requires_grad = True
+# #         if self.train_tsa_iter:
+# #             if current_iter == -1:
+# #                 logger.info(
+# #                     f'Only train TSA module for {self.train_tsa_iter} iters.')
+# #                 for name, param in self.net_g.named_parameters():
+# #                     if 'fusion' not in name:
+# #                         param.requires_grad = False
+# #             elif current_iter == self.train_tsa_iter:
+# #                 logger.warning('Train all the parameters.')
+# #                 for name,param in self.net_g.named_parameters():
+# #                     print(name)
+# #                     param.requires_grad = True
+# #                 if isinstance(self.net_g, DistributedDataParallel):
+# #                     logger.warning('Set net_g.find_unused_parameters = False.')
+# #                     self.net_g.find_unused_parameters = False
+
+#         super(VideoBaseModel, self).optimize_parameters(current_iter)

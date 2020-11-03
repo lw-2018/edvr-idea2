@@ -61,7 +61,7 @@ def main():
     if resume_state is None:
         make_exp_dirs(opt)
 
-    log_file = './w_100_offset_320.log' 
+    log_file = './train_upsample_offset_5_without_mask.log' 
     logger = get_root_logger(
         logger_name='basicsr', log_level=logging.INFO, log_file=log_file)
     logger.info(get_env_info())
@@ -81,7 +81,6 @@ def main():
         init_wandb_logger(opt)
 
     # random seed
-    print('1')
     seed = opt['manual_seed']
 #     if seed is None:
 #         seed = random.randint(1, 10000)

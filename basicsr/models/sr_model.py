@@ -110,10 +110,14 @@ class SRModel(BaseModel):
         # pixel loss
         if self.cri_pix:
             l_pix = self.cri_pix(self.output, self.gt)
+#             if(int(current_iter/10000)%2==0):
+#                 l_total += l_pix
             l_total += l_pix
             loss_dict['l_pix'] = l_pix
         # offset loss
         ######
+        
+        
         if self.cri_offset:
             l_offset = 0
             b,t,p,c,h,w = self.offset_frames.size()
@@ -126,7 +130,13 @@ class SRModel(BaseModel):
                         #print(group[i][j].shape ,self.flow[:,:,:,i:i+h,j:j+h].shape)
                         l_offset += self.cri_offset(group[i][j],self.flow[:,:,:,i:i+h,j:j+h])
             l_total += l_offset
+            #print('go',(current_iter/10000)%2)
+#             if(int(current_iter/10000)%2==1):
+
+#                 l_total += l_offset
             loss_dict['l_offset'] = l_offset
+
+
        # self.offset_frames_4 = self.offset_frames[:,3]
        # test__ = torch.stack(self.offset_frames[:][:], dim=0)
         #print(self.offset_frames.shape)
@@ -184,8 +194,8 @@ class SRModel(BaseModel):
                 del self.gt
 
             # tentative for out of GPU memory
-            del self.lq
-            del self.output
+#             del self.lq
+#             del self.output
             torch.cuda.empty_cache()
 
             if save_img:
@@ -235,6 +245,10 @@ class SRModel(BaseModel):
         out_dict = OrderedDict()
         out_dict['lq'] = self.lq.detach().cpu()
         out_dict['result'] = self.output[0].detach().cpu()
+#         out_flow = self.output[1].cpu().numpy()
+#         np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy',out_flow)
+#         out_mask = self.output[2].cpu().numpy()
+#         np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy',out_mask)
         if hasattr(self, 'gt'):
             out_dict['gt'] = self.gt.detach().cpu()
         return out_dict

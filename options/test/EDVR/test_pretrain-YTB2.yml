@@ -1,4 +1,4 @@
-name: EDVR_M_x4_SR_REDS_official
+name: test_pretrain_YTB2
 model_type: EDVRModel
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
@@ -8,14 +8,14 @@ datasets:
   test:
     name: REDS4
     type: VideoTestDataset
-    dataroot_gt: datasets/YTB/GT
-    dataroot_lq: datasets/YTB/LR
-    meta_info_file: basicsr/data/meta_info/vis.txt
+    dataroot_gt: datasets/YTB-2/GT
+    dataroot_lq: datasets/YTB-2/LR
+    meta_info_file: basicsr/data/meta_info/YTB-2_test.txt
     io_backend:
       type: disk
 
     cache_data: false
-    num_frame: 7
+    num_frame: 5
     padding: reflection_circle
 
 # network structures
@@ -24,7 +24,7 @@ network_g:
   num_in_ch: 3
   num_out_ch: 3
   num_feat: 64
-  num_frame: 7
+  num_frame: 5
   deformable_groups: 8
   num_extract_block: 5
   num_reconstruct_block: 10
@@ -35,7 +35,7 @@ network_g:
 
 # path
 path:
-  pretrain_model_g: experiments/920_EDVR_M_x4_SR_REDS_600k_B4G8_valYTB_101pretrain_wandb/models/net_g_15000.pth
+  pretrain_model_g: experiments/pretrained_models/EDVR_M_x4_SR_REDS_official-32075921.pth
   strict_load: true
 
 # validation settings

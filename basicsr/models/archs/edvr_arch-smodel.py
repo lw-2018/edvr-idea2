@@ -84,46 +84,46 @@ class PCDAlignment(nn.Module):
             Tensor: Aligned features.
         """
         # Pyramids
-        upsampled_offset, upsampled_feat = None, None
-        offset_frame = []
-        mask_frame = []
-        for i in range(3, 0, -1):
-            level = f'l{i}'
-            offset = torch.cat([nbr_feat_l[i - 1], ref_feat_l[i - 1]], dim=1)
-            offset = self.lrelu(self.offset_conv1[level](offset))
-          #  print('1 l1:offset '+ str(i)+ ':{w}'.format(w=offset.shape))
-            if i == 3:
-                offset = self.lrelu(self.offset_conv2[level](offset))
-            else:
-                offset = self.lrelu(self.offset_conv2[level](torch.cat(
-                    [offset, upsampled_offset], dim=1)))
-                offset = self.lrelu(self.offset_conv3[level](offset))
+#         upsampled_offset, upsampled_feat = None, None
+#         offset_frame = []
+#         mask_frame = []
+#         for i in range(3, 0, -1):
+#             level = f'l{i}'
+#             offset = torch.cat([nbr_feat_l[i - 1], ref_feat_l[i - 1]], dim=1)
+#             offset = self.lrelu(self.offset_conv1[level](offset))
+#           #  print('1 l1:offset '+ str(i)+ ':{w}'.format(w=offset.shape))
+#             if i == 3:
+#                 offset = self.lrelu(self.offset_conv2[level](offset))
+#             else:
+#                 offset = self.lrelu(self.offset_conv2[level](torch.cat(
+#                     [offset, upsampled_offset], dim=1)))
+#                 offset = self.lrelu(self.offset_conv3[level](offset))
                 
-           # print('2 l1:offset '+ str(i) +':{w}'.format(w=offset.shape))
-            feat,offset_pre,mask_pre = self.dcn_pack[level](nbr_feat_l[i - 1], offset)
-            if(i==1):
-                offset_frame.append(offset_pre)
-                mask_frame.append(mask_pre)
-            if i < 3:
-                feat = self.feat_conv[level](
-                    torch.cat([feat, upsampled_feat], dim=1))
-            if i > 1:
-                feat = self.lrelu(feat)
+#            # print('2 l1:offset '+ str(i) +':{w}'.format(w=offset.shape))
+#             feat,offset_pre,mask_pre = self.dcn_pack[level](nbr_feat_l[i - 1], offset)
+#             if(i==1):
+#                 offset_frame.append(offset_pre)
+#                 mask_frame.append(mask_pre)
+#             if i < 3:
+#                 feat = self.feat_conv[level](
+#                     torch.cat([feat, upsampled_feat], dim=1))
+#             if i > 1:
+#                 feat = self.lrelu(feat)
 
-            if i > 1:  # upsample offset and features
-                # x2: when we upsample the offset, we should also enlarge
-                # the magnitude.
-                upsampled_offset = self.upsample(offset) * 2
-                upsampled_feat = self.upsample(feat)
+#             if i > 1:  # upsample offset and features
+#                 # x2: when we upsample the offset, we should also enlarge
+#                 # the magnitude.
+#                 upsampled_offset = self.upsample(offset) * 2
+#                 upsampled_feat = self.upsample(feat)
                 
-        # Cascading
-        offset = torch.cat([feat, ref_feat_l[0]], dim=1)
-        offset = self.lrelu(
-            self.cas_offset_conv2(self.lrelu(self.cas_offset_conv1(offset))))
-        feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset)
-        feat = self.lrelu(feat)
-        offset_frame.append(offset_pre)
-        mask_frame.append(mask_pre)
+#         # Cascading
+#         offset = torch.cat([feat, ref_feat_l[0]], dim=1)
+#         offset = self.lrelu(
+#             self.cas_offset_conv2(self.lrelu(self.cas_offset_conv1(offset))))
+#         feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset)
+#         feat = self.lrelu(feat)
+#         offset_frame.append(offset_pre)
+#         mask_frame.append(mask_pre)
         return feat, offset_frame, mask_frame
 
 
@@ -366,91 +366,77 @@ class EDVR(nn.Module):
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
     def forward(self, x):
-        
-        
-#         b, t, c, h, w = x.size()
-#         if self.hr_in:
-#             assert h % 16 == 0 and w % 16 == 0, (
-#                 'The height and width must be multiple of 16.')
-#         else:
-#             assert h % 4 == 0 and w % 4 == 0, (
-#                 'The height and width must be multiple of 4.')
-
-#         x_center = x[:, self.center_frame_idx, :, :, :].contiguous()
-
-#         # extract features for each frame
-#         # L1
-#         if self.with_predeblur:
-#             feat_l1 = self.conv_1x1(self.predeblur(x.view(-1, c, h, w)))
-#             if self.hr_in:
-#                 h, w = h // 4, w // 4
-#         else:
-#             feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
         b, t, c, h, w = x.size()
+        if self.hr_in:
+            assert h % 16 == 0 and w % 16 == 0, (
+                'The height and width must be multiple of 16.')
+        else:
+            assert h % 4 == 0 and w % 4 == 0, (
+                'The height and width must be multiple of 4.')
 
         x_center = x[:, self.center_frame_idx, :, :, :].contiguous()
 
         # extract features for each frame
         # L1
-    #    out = self.conv_frist(x.view(-1,c,h,w))
-
-        feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
-
-        # print(feat_l1.shape)
+        if self.with_predeblur:
+            feat_l1 = self.conv_1x1(self.predeblur(x.view(-1, c, h, w)))
+            if self.hr_in:
+                h, w = h // 4, w // 4
+        else:
+            feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
 
         feat_l1 = self.feature_extraction(feat_l1)
-
-        # print(feat_l1.shape)
-
-        feat_l1 = self.lrelu(self.pixel_shuffle(self.upconv1(feat_l1)))
-        feat_l1 = self.lrelu(self.pixel_shuffle(self.upconv2(feat_l1)))
         
-        h = h*4
-        w = w*4
+        feat_l1 = feat_l1.view(b, -1, h, w)
         # L2
-        feat_l2 = self.lrelu(self.conv_l2_1(feat_l1))
-      #  feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
-        # L3
-        feat_l3 = self.lrelu(self.conv_l3_1(feat_l2))
-      #  feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
+#         feat_l2 = self.lrelu(self.conv_l2_1(feat_l1))
+#         feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
+#         # L3
+#         feat_l3 = self.lrelu(self.conv_l3_1(feat_l2))
+#         feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
 
-        feat_l1 = feat_l1.view(b, t, -1, h, w)
-        feat_l2 = feat_l2.view(b, t, -1, h // 2, w // 2)
-        feat_l3 = feat_l3.view(b, t, -1, h // 4, w // 4)
+#         feat_l1 = feat_l1.view(b, t, -1, h, w)
+#         feat_l2 = feat_l2.view(b, t, -1, h // 2, w // 2)
+#         feat_l3 = feat_l3.view(b, t, -1, h // 4, w // 4)
 
-        # PCD alignment
-        ref_feat_l = [  # reference feature list
-            feat_l1[:, self.center_frame_idx, :, :, :].clone(),
-            feat_l2[:, self.center_frame_idx, :, :, :].clone(),
-            feat_l3[:, self.center_frame_idx, :, :, :].clone()
-        ]
-        aligned_feat = []
+#         # PCD alignment
+#         ref_feat_l = [  # reference feature list
+#             feat_l1[:, self.center_frame_idx, :, :, :].clone(),
+#             feat_l2[:, self.center_frame_idx, :, :, :].clone(),
+#             feat_l3[:, self.center_frame_idx, :, :, :].clone()
+#         ]
+#         aligned_feat = []
         aligned_offset = []
         aligned_mask = []
-        for i in range(t):
-            nbr_feat_l = [  # neighboring feature list
-                feat_l1[:, i, :, :, :].clone(), feat_l2[:, i, :, :, :].clone(),
-                feat_l3[:, i, :, :, :].clone()
-            ]
-            feature_frame , offset_frame, mask_frame = self.pcd_align(nbr_feat_l, ref_feat_l)
-            offset_frame = torch.stack(offset_frame,dim=1)
-            mask_frame = torch.stack(mask_frame,dim=1)
-            aligned_feat.append(feature_frame)
-            aligned_offset.append(offset_frame)
-            aligned_mask.append(mask_frame)
-        aligned_feat = torch.stack(aligned_feat, dim=1)  # (b, t, c, h, w)
+#         for i in range(t):
+#             nbr_feat_l = [  # neighboring feature list
+#                 feat_l1[:, i, :, :, :].clone(), feat_l2[:, i, :, :, :].clone(),
+#                 feat_l3[:, i, :, :, :].clone()
+#             ]
+#             feature_frame , offset_frame, mask_frame = self.pcd_align(nbr_feat_l, ref_feat_l)
+#             offset_frame = torch.stack(offset_frame,dim=1)
+#             mask_frame = torch.stack(mask_frame,dim=1)
+#             aligned_feat.append(feature_frame)
+#             aligned_offset.append(offset_frame)
+#             aligned_mask.append(mask_frame)
+#         aligned_feat = torch.stack(aligned_feat, dim=1)  # (b, t, c, h, w)
         
-        aligned_offset = torch.stack(aligned_offset,dim=1)
-        aligned_mask = torch.stack(aligned_mask,dim=1)
-        if not self.with_tsa:
-            aligned_feat = aligned_feat.view(b, -1, h, w)
-        feat = self.fusion(aligned_feat)
+#         aligned_offset = torch.stack(aligned_offset,dim=1)
+#         aligned_mask = torch.stack(aligned_mask,dim=1)
+#         if not self.with_tsa:
+#             aligned_feat = aligned_feat.view(b, -1, h, w)
+        feat = self.fusion(feat_l1)
 
-        out = self.lrelu(self.reconstruction(feat))
-
-        out = self.conv_last(feat)
-        
-        base = F.interpolate(
-               x_center, scale_factor=4, mode='bilinear', align_corners=False)
+        out = self.reconstruction(feat)
+        out = self.lrelu(self.pixel_shuffle(self.upconv1(out)))
+        out = self.lrelu(self.pixel_shuffle(self.upconv2(out)))
+        out = self.lrelu(self.conv_hr(out))
+        out = self.conv_last(out)
+        if self.hr_in:
+            base = x_center
+        else:
+            base = F.interpolate(
+                x_center, scale_factor=4, mode='bilinear', align_corners=False)
         out += base
+        
         return out,aligned_offset,aligned_mask

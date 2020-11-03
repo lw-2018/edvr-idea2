@@ -366,53 +366,32 @@ class EDVR(nn.Module):
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
     def forward(self, x):
-        
-        
-#         b, t, c, h, w = x.size()
-#         if self.hr_in:
-#             assert h % 16 == 0 and w % 16 == 0, (
-#                 'The height and width must be multiple of 16.')
-#         else:
-#             assert h % 4 == 0 and w % 4 == 0, (
-#                 'The height and width must be multiple of 4.')
-
-#         x_center = x[:, self.center_frame_idx, :, :, :].contiguous()
-
-#         # extract features for each frame
-#         # L1
-#         if self.with_predeblur:
-#             feat_l1 = self.conv_1x1(self.predeblur(x.view(-1, c, h, w)))
-#             if self.hr_in:
-#                 h, w = h // 4, w // 4
-#         else:
-#             feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
         b, t, c, h, w = x.size()
+        if self.hr_in:
+            assert h % 16 == 0 and w % 16 == 0, (
+                'The height and width must be multiple of 16.')
+        else:
+            assert h % 4 == 0 and w % 4 == 0, (
+                'The height and width must be multiple of 4.')
 
         x_center = x[:, self.center_frame_idx, :, :, :].contiguous()
 
         # extract features for each frame
         # L1
-    #    out = self.conv_frist(x.view(-1,c,h,w))
-
-        feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
-
-        # print(feat_l1.shape)
+        if self.with_predeblur:
+            feat_l1 = self.conv_1x1(self.predeblur(x.view(-1, c, h, w)))
+            if self.hr_in:
+                h, w = h // 4, w // 4
+        else:
+            feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
 
         feat_l1 = self.feature_extraction(feat_l1)
-
-        # print(feat_l1.shape)
-
-        feat_l1 = self.lrelu(self.pixel_shuffle(self.upconv1(feat_l1)))
-        feat_l1 = self.lrelu(self.pixel_shuffle(self.upconv2(feat_l1)))
-        
-        h = h*4
-        w = w*4
         # L2
         feat_l2 = self.lrelu(self.conv_l2_1(feat_l1))
-      #  feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
+        feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
         # L3
         feat_l3 = self.lrelu(self.conv_l3_1(feat_l2))
-      #  feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
+        feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
 
         feat_l1 = feat_l1.view(b, t, -1, h, w)
         feat_l2 = feat_l2.view(b, t, -1, h // 2, w // 2)
@@ -446,11 +425,15 @@ class EDVR(nn.Module):
             aligned_feat = aligned_feat.view(b, -1, h, w)
         feat = self.fusion(aligned_feat)
 
-        out = self.lrelu(self.reconstruction(feat))
-
-        out = self.conv_last(feat)
-        
-        base = F.interpolate(
-               x_center, scale_factor=4, mode='bilinear', align_corners=False)
+        out = self.reconstruction(feat)
+        out = self.lrelu(self.pixel_shuffle(self.upconv1(out)))
+        out = self.lrelu(self.pixel_shuffle(self.upconv2(out)))
+        out = self.lrelu(self.conv_hr(out))
+        out = self.conv_last(out)
+        if self.hr_in:
+            base = x_center
+        else:
+            base = F.interpolate(
+                x_center, scale_factor=4, mode='bilinear', align_corners=False)
         out += base
         return out,aligned_offset,aligned_mask

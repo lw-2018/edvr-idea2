@@ -387,32 +387,26 @@ class EDVR(nn.Module):
 #         else:
 #             feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
         b, t, c, h, w = x.size()
+        x = F.interpolate(
+                x.view(b*t,c,h,w), scale_factor=4, mode='bilinear', align_corners=False)
+        x = x.view(b,t,c,4*h,4*w)
+        b, t, c, h, w = x.size()
 
         x_center = x[:, self.center_frame_idx, :, :, :].contiguous()
-
+        
+        feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
         # extract features for each frame
         # L1
     #    out = self.conv_frist(x.view(-1,c,h,w))
 
-        feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
-
-        # print(feat_l1.shape)
 
         feat_l1 = self.feature_extraction(feat_l1)
-
-        # print(feat_l1.shape)
-
-        feat_l1 = self.lrelu(self.pixel_shuffle(self.upconv1(feat_l1)))
-        feat_l1 = self.lrelu(self.pixel_shuffle(self.upconv2(feat_l1)))
-        
-        h = h*4
-        w = w*4
         # L2
         feat_l2 = self.lrelu(self.conv_l2_1(feat_l1))
-      #  feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
+        feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
         # L3
         feat_l3 = self.lrelu(self.conv_l3_1(feat_l2))
-      #  feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
+        feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
 
         feat_l1 = feat_l1.view(b, t, -1, h, w)
         feat_l2 = feat_l2.view(b, t, -1, h // 2, w // 2)
@@ -446,11 +440,10 @@ class EDVR(nn.Module):
             aligned_feat = aligned_feat.view(b, -1, h, w)
         feat = self.fusion(aligned_feat)
 
-        out = self.lrelu(self.reconstruction(feat))
-
-        out = self.conv_last(feat)
+        out = self.reconstruction(feat)
+        out = self.conv_last(out)
         
-        base = F.interpolate(
-               x_center, scale_factor=4, mode='bilinear', align_corners=False)
+        base = x_center
+   
         out += base
         return out,aligned_offset,aligned_mask

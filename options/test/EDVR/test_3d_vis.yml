@@ -1,16 +1,17 @@
-name: EDVR_L_x4_Vimeo90K_SR_official
+name: atest_3d_vis_pretrain
 model_type: EDVRModel
 scale: 4
-num_gpu: 8  # set num_gpu: 0 for cpu mode
+num_gpu: 1  # set num_gpu: 0 for cpu mode
 manual_seed: 0
-
+#VideoTestDataset
+#VideoTestVimeo90KDataset
 datasets:
   test:
-    name: Vimeo90K-Test
+    name: REDS4
     type: VideoTestVimeo90KDataset
-    dataroot_gt: datasets/vimeo90k/vimeo_septuplet/sequences
-    dataroot_lq: datasets/vimeo90k/vimeo_septuplet_matlabLRx4/sequences
-    meta_info_file: basicsr/data/meta_info/meta_info_Vimeo90K_test_GT.txt
+    dataroot_gt: datasets/YTB-2/GT
+    dataroot_lq: datasets/3d
+    meta_info_file: basicsr/data/meta_info/3d_vis.txt
     io_backend:
       type: disk
 
@@ -31,16 +32,19 @@ network_g:
   center_frame_idx: ~
   hr_in: false
   with_predeblur: false
-  with_tsa: true
-
+  with_tsa: false
+  
 # path
 path:
   pretrain_model_g: experiments/pretrained_models/EDVR_L_x4_SR_Vimeo90K_official-162b54e4.pth
   strict_load: true
-
+# experiments/train_3d/models/net_g_280000.pth
+# experiments/train_3d/models/net_g_150000.pth
+# experiments/train_3d_160/models/net_g_80000.pth    将160大小图片加在upsample层后
+# experiments/train_3d_160_out/models/net_g_140000.pth    将160大小图片加在concat
 # validation settings
 val:
-  save_img: true
+  save_img: yes
   suffix: ~  # add suffix to saved images, if None, use exp name
 
   metrics:
