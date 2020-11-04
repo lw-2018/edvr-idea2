@@ -213,7 +213,8 @@ class SRModel(BaseModel):
                             self.opt['path']['visualization'], dataset_name,
                             f'{img_name}_{self.opt["name"]}.png')
                 mmcv.imwrite(sr_img, save_img_path)
-
+                np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy', visual['flow'])
+                np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy', visual['mask'])
             if with_metrics:
                 # calculate metrics
                 opt_metric = deepcopy(self.opt['val']['metrics'])
@@ -245,10 +246,14 @@ class SRModel(BaseModel):
         out_dict = OrderedDict()
         out_dict['lq'] = self.lq.detach().cpu()
         out_dict['result'] = self.output[0].detach().cpu()
-#         out_flow = self.output[1].cpu().numpy()
-#         np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy',out_flow)
-#         out_mask = self.output[2].cpu().numpy()
-#         np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy',out_mask)
+        out_flow = self.output[1].cpu().numpy()
+        out_mask = self.output[2].cpu().numpy()
+
+        out_dict['flow'] = out_flow
+        out_dict['mask'] = out_mask
+        # visual
+        # np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy',out_flow)
+        # np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy',out_mask)
         if hasattr(self, 'gt'):
             out_dict['gt'] = self.gt.detach().cpu()
         return out_dict

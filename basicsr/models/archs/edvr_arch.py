@@ -101,9 +101,9 @@ class PCDAlignment(nn.Module):
                 
            # print('2 l1:offset '+ str(i) +':{w}'.format(w=offset.shape))
             feat,offset_pre,mask_pre = self.dcn_pack[level](nbr_feat_l[i - 1], offset)
-            if(i==1):
-                offset_frame.append(offset_pre)
-                mask_frame.append(mask_pre)
+#             if(i==1):
+#                 offset_frame.append(offset_pre)
+#                 mask_frame.append(mask_pre)
             if i < 3:
                 feat = self.feat_conv[level](
                     torch.cat([feat, upsampled_feat], dim=1))

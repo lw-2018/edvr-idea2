@@ -61,7 +61,7 @@ def main():
     if resume_state is None:
         make_exp_dirs(opt)
 
-    log_file = './train_upsample_offset_5_without_mask.log' 
+    log_file = './'+opt['name']+'.log'
     logger = get_root_logger(
         logger_name='basicsr', log_level=logging.INFO, log_file=log_file)
     logger.info(get_env_info())
