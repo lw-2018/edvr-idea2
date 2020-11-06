@@ -117,8 +117,9 @@ class SRModel(BaseModel):
         # offset loss
         ######
         
+       # weight  = (55000-20000)/50000.0
         
-        if self.cri_offset:
+        if False:
             l_offset = 0
             b,t,p,c,h,w = self.offset_frames.size()
             self.offset_frames = self.offset_frames.view(b,t,p*8,3,3,2,h,w).permute(2,3,4, 0,1,5,6,7)  ##16, 3(batchsize), 3, 3, 7, 2, 112, 112
@@ -129,11 +130,7 @@ class SRModel(BaseModel):
                     for j in range(0,3):
                         #print(group[i][j].shape ,self.flow[:,:,:,i:i+h,j:j+h].shape)
                         l_offset += self.cri_offset(group[i][j],self.flow[:,:,:,i:i+h,j:j+h])
-            l_total += l_offset
-            #print('go',(current_iter/10000)%2)
-#             if(int(current_iter/10000)%2==1):
-
-#                 l_total += l_offset
+            #l_total += l_offset*weight
             loss_dict['l_offset'] = l_offset
 
 
@@ -252,8 +249,8 @@ class SRModel(BaseModel):
         out_dict['flow'] = out_flow
         out_dict['mask'] = out_mask
         # visual
-        # np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy',out_flow)
-        # np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy',out_mask)
+#         np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy',out_flow)
+#         np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy',out_mask)
         if hasattr(self, 'gt'):
             out_dict['gt'] = self.gt.detach().cpu()
         return out_dict
