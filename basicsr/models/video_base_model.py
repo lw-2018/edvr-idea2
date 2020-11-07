@@ -89,7 +89,9 @@ class VideoBaseModel(SRModel):
                             self.opt['path']['visualization'],
                             folder, f'{img_name}.png')
                 mmcv.imwrite(result_img, save_img_path)
-
+            split_result = lq_path.split('/')
+            img_name = (f'{split_result[-3]}_{split_result[-2]}_'
+                        f'{split_result[-1].split(".")[0]}')
             if with_metrics:
                 # calculate metrics
                 opt_metric = deepcopy(self.opt['val']['metrics'])
@@ -99,7 +101,10 @@ class VideoBaseModel(SRModel):
                                      metric_type)(result_img, gt_img, **opt_)
                     self.metric_results[folder][int(frame_idx),
                                                 metric_idx] += result
-
+                    psnr = getattr(metric_module, metric_type)(result_img, gt_img, **opt_)
+                    with open('/home/wei/exp/EDVR/psnr_log/psnr_first.txt','a+') as f:
+                        f.write(f'{img_name} {psnr}\r\n')
+    
             # progress bar
             if rank == 0:
                 for _ in range(world_size):

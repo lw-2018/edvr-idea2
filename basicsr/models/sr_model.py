@@ -219,7 +219,7 @@ class SRModel(BaseModel):
                     metric_type = opt_.pop('type')
                     self.metric_results[name] += getattr(
                         metric_module, metric_type)(sr_img, gt_img, **opt_)
-            pbar.update(f'Test {img_name}')
+
 
         if with_metrics:
             for metric in self.metric_results.keys():
