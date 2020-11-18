@@ -5,6 +5,8 @@ results/*
 tb_logger/*
 wandb/*
 tmp/*
+flow_save/*
+flow_save_160/*
 
 .vscode
 
@@ -18,7 +20,7 @@ version.py
 *.gif
 *.pth
 *.zip
-
+*.npy
 # template
 
 # Byte-compiled / optimized / DLL files

@@ -69,7 +69,7 @@ class PCDAlignment(nn.Module):
             scale_factor=2, mode='bilinear', align_corners=False)
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
-    def forward(self, nbr_feat_l, ref_feat_l):
+    def forward(self, nbr_feat_l, ref_feat_l,flow_gt):
         """Align neighboring frame features to the reference frame features.
 
         Args:
@@ -100,7 +100,11 @@ class PCDAlignment(nn.Module):
                 offset = self.lrelu(self.offset_conv3[level](offset))
                 
            # print('2 l1:offset '+ str(i) +':{w}'.format(w=offset.shape))
-            feat,offset_pre,mask_pre = self.dcn_pack[level](nbr_feat_l[i - 1], offset)
+            if(i==1):
+                flag = 1
+            else:
+                flag = 0
+            feat,offset_pre,mask_pre = self.dcn_pack[level](nbr_feat_l[i - 1], offset,flow_gt,flag)
             if(i==1):
                 offset_frame.append(offset_pre)
                 mask_frame.append(mask_pre)
@@ -120,10 +124,11 @@ class PCDAlignment(nn.Module):
         offset = torch.cat([feat, ref_feat_l[0]], dim=1)
         offset = self.lrelu(
             self.cas_offset_conv2(self.lrelu(self.cas_offset_conv1(offset))))
-        feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset)
+        flag = 0
+        feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset,0,flag)
         feat = self.lrelu(feat)
-        offset_frame.append(offset_pre)
-        mask_frame.append(mask_pre)
+#         offset_frame.append(offset_pre)
+#         mask_frame.append(mask_pre)
         return feat, offset_frame, mask_frame
 
 
@@ -365,7 +370,7 @@ class EDVR(nn.Module):
         # activation function
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
-    def forward(self, x):
+    def forward(self, x,flow_7):
         
         
 #         b, t, c, h, w = x.size()
@@ -432,7 +437,8 @@ class EDVR(nn.Module):
                 feat_l1[:, i, :, :, :].clone(), feat_l2[:, i, :, :, :].clone(),
                 feat_l3[:, i, :, :, :].clone()
             ]
-            feature_frame , offset_frame, mask_frame = self.pcd_align(nbr_feat_l, ref_feat_l)
+            flow_gt = flow_7[:, i, :, :, :]
+            feature_frame , offset_frame, mask_frame = self.pcd_align(nbr_feat_l, ref_feat_l,flow_gt)
             offset_frame = torch.stack(offset_frame,dim=1)
             mask_frame = torch.stack(mask_frame,dim=1)
             aligned_feat.append(feature_frame)

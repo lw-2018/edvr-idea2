@@ -26,6 +26,7 @@ class SRModel(BaseModel):
         self.offset_frame= []
         self.offset_mask = []
         self.flow =[]
+        self.flow_7 = []
         # load pretrained models
         load_path = self.opt['path'].get('pretrain_model_g', None)
         if load_path is not None:
@@ -97,10 +98,11 @@ class SRModel(BaseModel):
             self.gt = data['gt'].to(self.device)
         if 'flow' in data:
             self.flow = data['flow'].to(self.device)
-
+        if 'flow_7' in data:
+            self.flow_7 = data['flow_7'].to(self.device)
     def optimize_parameters(self, current_iter):
         self.optimizer_g.zero_grad()
-        self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
+        self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq,self.flow_7)
         #print('max:offset :', self.offset_frames.max())
        # print(self.offset_frames)
         
@@ -118,20 +120,27 @@ class SRModel(BaseModel):
         ######
         
        # weight  = (55000-20000)/50000.0
-        
+        #print(torch.mean(self.flow_7),torch.mean(self.flow))
         if False:
             l_offset = 0
             b,t,p,c,h,w = self.offset_frames.size()
+           # print(b,t,p,c,h,w)
+            #print(abs(torch.sub(self.flow[0,0,:,1:1+h,1:1+h],self.offset_frames[0,0,0,:2,:,:])).max())
             self.offset_frames = self.offset_frames.view(b,t,p*8,3,3,2,h,w).permute(2,3,4, 0,1,5,6,7)  ##16, 3(batchsize), 3, 3, 7, 2, 112, 112
-            self.flow = F.pad(self.flow,(1,1,1,1),'constant',0)   #3(b) 7 2 450 450
+           # self.flow = F.pad(self.flow,(1,1,1,1),'constant',0)   #3(b) 7 2 450 450
             #print(self.flow.shape)
+          #  print(self.offset_frames.shape,self.flow.shape)
             for group in self.offset_frames:
                 for i in range(0,3):
                     for j in range(0,3):
                         #print(group[i][j].shape ,self.flow[:,:,:,i:i+h,j:j+h].shape)
                         l_offset += self.cri_offset(group[i][j],self.flow[:,:,:,i:i+h,j:j+h])
+                       #print(abs(torch.sub(self.flow[:,:,:,1:1+h,1:1+h],group[1][1])).max())
+                        
             #l_total += l_offset*weight
+            #print('hhhh',l_offset)
             loss_dict['l_offset'] = l_offset
+            
 
 
        # self.offset_frames_4 = self.offset_frames[:,3]
@@ -160,7 +169,7 @@ class SRModel(BaseModel):
     def test(self):
         self.net_g.eval()
         with torch.no_grad():
-            self.output = self.net_g(self.lq)
+            self.output = self.net_g(self.lq,self.flow_7)
         self.net_g.train()
 
     def dist_validation(self, dataloader, current_iter, tb_logger, save_img):
@@ -210,8 +219,8 @@ class SRModel(BaseModel):
                             self.opt['path']['visualization'], dataset_name,
                             f'{img_name}_{self.opt["name"]}.png')
                 mmcv.imwrite(sr_img, save_img_path)
-                np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy', visual['flow'])
-                np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy', visual['mask'])
+#                 np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy', visual['flow'])
+#                 np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy', visual['mask'])
             if with_metrics:
                 # calculate metrics
                 opt_metric = deepcopy(self.opt['val']['metrics'])
@@ -242,12 +251,13 @@ class SRModel(BaseModel):
     def get_current_visuals(self):
         out_dict = OrderedDict()
         out_dict['lq'] = self.lq.detach().cpu()
+        out_dict['flow_7'] = self.flow_7.detach().cpu()
         out_dict['result'] = self.output[0].detach().cpu()
-        out_flow = self.output[1].cpu().numpy()
-        out_mask = self.output[2].cpu().numpy()
+#         out_flow = self.output[1].cpu().numpy()
+#         out_mask = self.output[2].cpu().numpy()
 
-        out_dict['flow'] = out_flow
-        out_dict['mask'] = out_mask
+#         out_dict['flow'] = out_flow
+#         out_dict['mask'] = out_mask
         # visual
 #         np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy',out_flow)
 #         np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy',out_mask)

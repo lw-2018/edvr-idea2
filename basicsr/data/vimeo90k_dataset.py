@@ -4,7 +4,7 @@ import random
 import torch
 from pathlib import Path
 from torch.utils import data as data
-
+import torch.nn.functional as F
 from basicsr.data.transforms import augment, paired_random_crop, totensor
 from basicsr.utils import FileClient, get_root_logger
 
@@ -155,7 +155,26 @@ class Vimeo90KDataset(data.Dataset):
 #         np.save(save_path,np.array(result_7))
         ### get18
         #return np.array(result_7)
-        return {'lq': img_lqs, 'gt': img_gt, 'key': key, 'flow':flow}
+        result_7 = []
+        for test in flow:
+            width = test.shape[1]
+            height = test.shape[2]
+            ndarray=np.pad(test,((0,0),(1,1),(1,1)),'constant', constant_values=0)
+            result=[]
+            for i in range(0,3):
+                for j in range(0,3): 
+                    result.extend(ndarray[:,i:i+width,j:j+height])
+            result = np.array(result)
+            result = np.expand_dims(result,0).repeat(8,axis=0)
+            result = result.reshape(144,width,height)
+            result_7.append(result)
+        result_7 = np.array(result_7).astype(np.float)
+        flow=np.pad(flow,((0,0),(0,0),(1,1),(1,1)),'constant', constant_values=0)
+   #     lq_offset = []
+    #    lq_offset.append(img_lqs)
+     #   lq_offset.append(np.array(result_7))
+        
+        return {'lq': img_lqs, 'gt': img_gt, 'key': key, 'flow':flow,'flow_7':result_7}
 
     def __len__(self):
         return len(self.keys)
