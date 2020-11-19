@@ -233,7 +233,7 @@ class DCNv2Pack(ModulatedDeformConvPack):
         Delving Deep into Deformable Alignment in Video Super-Resolution.
     """
 
-    def forward(self, x, feat,flow_gt,flag):
+    def forward(self, x, feat):
         out = self.conv_offset(feat)
         o1, o2, mask = torch.chunk(out, 3, dim=1)
         offset = torch.cat((o1, o2), dim=1)
@@ -247,12 +247,7 @@ class DCNv2Pack(ModulatedDeformConvPack):
             logger.warning(
                 f'Offset abs mean is {offset_absmean}, larger than 50.')
         mask_1 = mask.new_ones(mask.size())
-        if flag == 1:
-            flow_gt = flow_gt.float()
-            return modulated_deform_conv(x, flow_gt, mask_1, self.weight, self.bias,
-                                         self.stride, self.padding, self.dilation,
-                                         self.groups, self.deformable_groups), flow_gt, mask
-        else:
-            return modulated_deform_conv(x, offset, mask, self.weight, self.bias,
+
+        return modulated_deform_conv(x, offset, mask, self.weight, self.bias,
                                          self.stride, self.padding, self.dilation,
                                          self.groups, self.deformable_groups), offset, mask

@@ -69,7 +69,7 @@ class PCDAlignment(nn.Module):
             scale_factor=2, mode='bilinear', align_corners=False)
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
-    def forward(self, nbr_feat_l, ref_feat_l):
+    def forward(self, nbr_feat_l, ref_feat_l,flow_gt):
         """Align neighboring frame features to the reference frame features.
 
         Args:
@@ -100,7 +100,11 @@ class PCDAlignment(nn.Module):
                 offset = self.lrelu(self.offset_conv3[level](offset))
                 
            # print('2 l1:offset '+ str(i) +':{w}'.format(w=offset.shape))
-            feat,offset_pre,mask_pre = self.dcn_pack[level](nbr_feat_l[i - 1], offset)
+            if(i==1):
+                flag = 1
+            else:
+                flag = 0
+            feat,offset_pre,mask_pre = self.dcn_pack[level](nbr_feat_l[i - 1], offset,flow_gt,flag)
             if(i==1):
                 offset_frame.append(offset_pre)
                 mask_frame.append(mask_pre)
@@ -120,10 +124,11 @@ class PCDAlignment(nn.Module):
         offset = torch.cat([feat, ref_feat_l[0]], dim=1)
         offset = self.lrelu(
             self.cas_offset_conv2(self.lrelu(self.cas_offset_conv1(offset))))
-        feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset)
+        flag = 0
+        feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset,0,flag)
         feat = self.lrelu(feat)
-        offset_frame.append(offset_pre)
-        mask_frame.append(mask_pre)
+#         offset_frame.append(offset_pre)
+#         mask_frame.append(mask_pre)
         return feat, offset_frame, mask_frame
 
 
@@ -365,7 +370,7 @@ class EDVR(nn.Module):
         # activation function
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
-    def forward(self, x):
+    def forward(self, x,flow_7):
         
         
 #         b, t, c, h, w = x.size()
@@ -387,26 +392,32 @@ class EDVR(nn.Module):
 #         else:
 #             feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
         b, t, c, h, w = x.size()
-        x = F.interpolate(
-                x.view(b*t,c,h,w), scale_factor=4, mode='bilinear', align_corners=False)
-        x = x.view(b,t,c,4*h,4*w)
-        b, t, c, h, w = x.size()
 
         x_center = x[:, self.center_frame_idx, :, :, :].contiguous()
-        
-        feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
+
         # extract features for each frame
         # L1
     #    out = self.conv_frist(x.view(-1,c,h,w))
 
+        feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
+
+        # print(feat_l1.shape)
 
         feat_l1 = self.feature_extraction(feat_l1)
+
+        # print(feat_l1.shape)
+
+        feat_l1 = self.lrelu(self.pixel_shuffle(self.upconv1(feat_l1)))
+        feat_l1 = self.lrelu(self.pixel_shuffle(self.upconv2(feat_l1)))
+        
+        h = h*4
+        w = w*4
         # L2
         feat_l2 = self.lrelu(self.conv_l2_1(feat_l1))
-        feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
+      #  feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
         # L3
         feat_l3 = self.lrelu(self.conv_l3_1(feat_l2))
-        feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
+      #  feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
 
         feat_l1 = feat_l1.view(b, t, -1, h, w)
         feat_l2 = feat_l2.view(b, t, -1, h // 2, w // 2)
@@ -426,7 +437,8 @@ class EDVR(nn.Module):
                 feat_l1[:, i, :, :, :].clone(), feat_l2[:, i, :, :, :].clone(),
                 feat_l3[:, i, :, :, :].clone()
             ]
-            feature_frame , offset_frame, mask_frame = self.pcd_align(nbr_feat_l, ref_feat_l)
+            flow_gt = flow_7[:, i, :, :, :]
+            feature_frame , offset_frame, mask_frame = self.pcd_align(nbr_feat_l, ref_feat_l,flow_gt)
             offset_frame = torch.stack(offset_frame,dim=1)
             mask_frame = torch.stack(mask_frame,dim=1)
             aligned_feat.append(feature_frame)
@@ -440,10 +452,11 @@ class EDVR(nn.Module):
             aligned_feat = aligned_feat.view(b, -1, h, w)
         feat = self.fusion(aligned_feat)
 
-        out = self.reconstruction(feat)
-        out = self.conv_last(out)
+        out = self.lrelu(self.reconstruction(feat))
+
+        out = self.conv_last(feat)
         
-        base = x_center
-   
+        base = F.interpolate(
+               x_center, scale_factor=4, mode='bilinear', align_corners=False)
         out += base
         return out,aligned_offset,aligned_mask

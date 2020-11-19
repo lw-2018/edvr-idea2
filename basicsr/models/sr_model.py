@@ -98,13 +98,12 @@ class SRModel(BaseModel):
             self.gt = data['gt'].to(self.device)
         if 'flow' in data:
             self.flow = data['flow'].to(self.device)
-        if 'flow_7' in data:
-            self.flow_7 = data['flow_7'].to(self.device)
+
     def optimize_parameters(self, current_iter):
         self.optimizer_g.zero_grad()
-        self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq,self.flow_7)
+        self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
         #print('max:offset :', self.offset_frames.max())
-       # print(self.offset_frames)
+
         
 
         l_total = 0
@@ -121,15 +120,13 @@ class SRModel(BaseModel):
         
        # weight  = (55000-20000)/50000.0
         #print(torch.mean(self.flow_7),torch.mean(self.flow))
-        if False:
+        if True:
             l_offset = 0
             b,t,p,c,h,w = self.offset_frames.size()
-           # print(b,t,p,c,h,w)
-            #print(abs(torch.sub(self.flow[0,0,:,1:1+h,1:1+h],self.offset_frames[0,0,0,:2,:,:])).max())
+
             self.offset_frames = self.offset_frames.view(b,t,p*8,3,3,2,h,w).permute(2,3,4, 0,1,5,6,7)  ##16, 3(batchsize), 3, 3, 7, 2, 112, 112
-           # self.flow = F.pad(self.flow,(1,1,1,1),'constant',0)   #3(b) 7 2 450 450
-            #print(self.flow.shape)
-          #  print(self.offset_frames.shape,self.flow.shape)
+            self.flow = F.pad(self.flow,(1,1,1,1),'constant',0)   #3(b) 7 2 450 450
+
             for group in self.offset_frames:
                 for i in range(0,3):
                     for j in range(0,3):
@@ -137,20 +134,13 @@ class SRModel(BaseModel):
                         l_offset += self.cri_offset(group[i][j],self.flow[:,:,:,i:i+h,j:j+h])
                        #print(abs(torch.sub(self.flow[:,:,:,1:1+h,1:1+h],group[1][1])).max())
                         
-            #l_total += l_offset*weight
+            l_total += l_offset
             #print('hhhh',l_offset)
             loss_dict['l_offset'] = l_offset
             
 
 
-       # self.offset_frames_4 = self.offset_frames[:,3]
-       # test__ = torch.stack(self.offset_frames[:][:], dim=0)
-        #print(self.offset_frames.shape)
-        #self.offset_frames_3 = self.offset_frames_3.view(b,t,c,h,w)
-        #b,t,c,448,448
-        #b,t,2*9,448,448
-        #
-        ######
+
 
         if self.cri_perceptual:
             l_percep, l_style = self.cri_perceptual(self.output, self.gt)
@@ -169,7 +159,7 @@ class SRModel(BaseModel):
     def test(self):
         self.net_g.eval()
         with torch.no_grad():
-            self.output = self.net_g(self.lq,self.flow_7)
+            self.output = self.net_g(self.lq)
         self.net_g.train()
 
     def dist_validation(self, dataloader, current_iter, tb_logger, save_img):
@@ -251,7 +241,6 @@ class SRModel(BaseModel):
     def get_current_visuals(self):
         out_dict = OrderedDict()
         out_dict['lq'] = self.lq.detach().cpu()
-        out_dict['flow_7'] = self.flow_7.detach().cpu()
         out_dict['result'] = self.output[0].detach().cpu()
 #         out_flow = self.output[1].cpu().numpy()
 #         out_mask = self.output[2].cpu().numpy()

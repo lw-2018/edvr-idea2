@@ -28,7 +28,7 @@ def charbonnier_loss(pred, target, eps=1e-12):
 def offset_loss(pred, target):
     #return torch.where((abs(pred - target) >= 1) , torch.where(abs(target)>0.01, 1*abs(pred - target) , 0*pred)   , 0 * abs(pred - target)) 
     #return F.l1_loss(pred, target, reduction='none')
-    return torch.where((abs(pred - target) >= 5)  , 1*abs(pred - target) * (abs(target)>0.001)  , 0 * abs(pred - target))
+    return torch.where((abs(pred - target) >= 1)  , 1*abs(pred - target) * (abs(target)>0.001)  , 0 * abs(pred - target))
     
 class OffsetLoss(nn.Module):
     """L1 (mean absolute error, MAE) loss.
