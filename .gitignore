@@ -7,7 +7,7 @@ wandb/*
 tmp/*
 flow_save/*
 flow_save_160/*
-
+psnr_log/*
 .vscode
 
 # ignored files
