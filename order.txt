@@ -40,4 +40,4 @@ CUDA_VISIBLE_DEVICES=0 python basicsr/test.py -opt options/test/EDVR/test_3d.yml
 
 CUDA_VISIBLE_DEVICES=0 python basicsr/train.py -opt options/train/EDVR/train_320.yml
 
-CUDA_VISIBLE_DEVICES=1 python basicsr/test.py -opt options/test/EDVR/test_160.yml
+CUDA_VISIBLE_DEVICES=1 python basicsr/test.py -opt options/test/EDVR/train_160.yml

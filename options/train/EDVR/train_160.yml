@@ -76,9 +76,9 @@ network_g:
   with_tsa: false
 # path
 path:
-  pretrain_model_g: ~
+  pretrain_model_g: experiments/train_ori_offset/models/net_g_400000
   strict_load: false
-  resume_state: ~
+  resume_state: experiments/train_ori_offset/training_states/400000.state
 
 # training settings
 train:

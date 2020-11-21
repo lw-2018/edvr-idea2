@@ -101,9 +101,9 @@ class VideoBaseModel(SRModel):
                                      metric_type)(result_img, gt_img, **opt_)
                     self.metric_results[folder][int(frame_idx),
                                                 metric_idx] += result
-                    psnr = getattr(metric_module, metric_type)(result_img, gt_img, **opt_)
-                    with open('/home/wei/exp/EDVR/psnr_log/psnr_first.txt','a+') as f:
-                        f.write(f'{img_name} {psnr}\r\n')
+#                     psnr = getattr(metric_module, metric_type)(result_img, gt_img, **opt_)
+#                     with open('/home/wei/exp/EDVR/psnr_log/psnr_first.txt','a+') as f:
+#                         f.write(f'{img_name} {psnr}\r\n')
     
             # progress bar
             if rank == 0:
