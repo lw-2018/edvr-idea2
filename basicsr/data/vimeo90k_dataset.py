@@ -81,7 +81,9 @@ class Vimeo90KDataset(data.Dataset):
         if self.file_client is None:
             self.file_client = FileClient(
                 self.io_backend_opt.pop('type'), **self.io_backend_opt)
-
+            
+        random.shuffle(self.neighbor_list)
+        
         # random reverse
         if self.random_reverse and random.random() < 0.5:
             self.neighbor_list.reverse()
@@ -90,15 +92,14 @@ class Vimeo90KDataset(data.Dataset):
         gt_size = self.opt['gt_size']
         key = self.keys[index]
         clip, seq = key.split('/')  # key example: 00001/0001
-
+        mid_img = 'im'+str(self.neighbor_list[3])+'.png'
         # get the GT frame (im4.png)
         if self.is_lmdb:
-            img_gt_path = f'{key}/im4'
+            img_gt_path = f'{key}/im{self.neighbor_list[3]}'
         else:
-            img_gt_path = self.gt_root / clip / seq / 'im4.png'
+            img_gt_path = self.gt_root / clip / seq / mid_img
         img_bytes = self.file_client.get(img_gt_path, 'gt')
         img_gt = mmcv.imfrombytes(img_bytes).astype(np.float32) / 255.
-
         # get the neighboring LQ frames
         img_lqs = []
         for neighbor in self.neighbor_list:
