@@ -174,8 +174,8 @@ class PreDcn(nn.Module):
             self.cas_offset_conv2(self.lrelu(self.cas_offset_conv1(offset))))
         feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset)
         feat = self.lrelu(feat)
-         offset_frame.append(offset_pre)
-         mask_frame.append(mask_pre)
+        offset_frame.append(offset_pre)
+        mask_frame.append(mask_pre)
         return feat, offset_frame, mask_frame
 
     

@@ -1,4 +1,4 @@
-name: test_160_ijb_normal
+name: test_160_ijb_angel
 model_type: EDVRModel
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
