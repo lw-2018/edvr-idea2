@@ -120,7 +120,7 @@ class SRModel(BaseModel):
         
        # weight  = (55000-20000)/50000.0
         #print(torch.mean(self.flow_7),torch.mean(self.flow))
-        if True:
+        if False:
             l_offset = 0
             b,t,p,c,h,w = self.offset_frames.size()
 

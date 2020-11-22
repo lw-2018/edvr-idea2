@@ -127,6 +127,58 @@ class PCDAlignment(nn.Module):
         return feat, offset_frame, mask_frame
 
 
+class PreDcn(nn.Module):
+    def __init__(self, num_feat=64, deformable_groups=8):
+        super(PreDcn, self).__init__()
+
+        self.offset_conv1 = nn.ModuleDict()
+        self.dcn_pack = nn.ModuleDict()
+        self.feat_conv = nn.ModuleDict()
+
+
+        # Cascading dcn
+        self.cas_offset_conv1 = nn.Conv2d(num_feat * 2, num_feat, 3, 1, 1)
+        self.cas_offset_conv2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
+        self.cas_dcnpack = DCNv2Pack(
+            num_feat,
+            num_feat,
+            3,
+            padding=1,
+            deformable_groups=deformable_groups)
+
+        self.upsample = nn.Upsample(
+            scale_factor=2, mode='bilinear', align_corners=False)
+        self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+
+    def forward(self, nbr_feat_l, ref_feat_l):
+        """Align neighboring frame features to the reference frame features.
+
+        Args:
+            nbr_feat_l (list[Tensor]): Neighboring feature list. It
+                contains three pyramid levels (L1, L2, L3),
+                each with shape (b, c, h, w).
+            ref_feat_l (list[Tensor]): Reference feature list. It
+                contains three pyramid levels (L1, L2, L3),
+                each with shape (b, c, h, w).
+
+        Returns:
+            Tensor: Aligned features.
+        """
+        feat = nbr_feat_l
+        offset_frame = []
+        mask_frame = []
+
+        # Cascading
+        offset = torch.cat([feat, ref_feat_l[0]], dim=1)
+        offset = self.lrelu(
+            self.cas_offset_conv2(self.lrelu(self.cas_offset_conv1(offset))))
+        feat, offset_pre, mask_pre = self.cas_dcnpack(feat, offset)
+        feat = self.lrelu(feat)
+         offset_frame.append(offset_pre)
+         mask_frame.append(mask_pre)
+        return feat, offset_frame, mask_frame
+
+    
 class TSAFusion(nn.Module):
     """Temporal Spatial Attention (TSA) fusion module.
 
