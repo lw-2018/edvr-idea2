@@ -1,5 +1,5 @@
 # general settings
-name: train_ori_shuffle_baseline
+name: train_ori_shuffle_ijb
 model_type: EDVRModel
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
@@ -10,10 +10,10 @@ datasets:
   train:
     name: VOX
     type: Vimeo90KDataset
-    dataroot_gt: /data2/wei/vox-160/GT
-    dataroot_lq: /data2/wei/vox-160/LR
+    dataroot_gt: /data2/wei/vox-160-clean/GT
+    dataroot_lq: /data2/wei/vox-160-clean/LR
     dataroot_flow: ~
-    meta_info_file: basicsr/data/meta_info/train_160.txt  #############dododo
+    meta_info_file: basicsr/data/meta_info/vox_ijb_train.txt  #############dododo
     val_partition: Vimeo90KDateset # set to 'official' when use the official validation partition
     io_backend:
       type: disk
@@ -35,9 +35,9 @@ datasets:
   val:
     name: VOX
     type: VideoTestVimeo90KDataset
-    dataroot_gt: /data2/wei/vox-160/GT
-    dataroot_lq: /data2/wei/vox-160/LR
-    meta_info_file: basicsr/data/meta_info/test_160.txt  ##########dododo
+    dataroot_gt: /data2/wei/vox-160-clean/GT
+    dataroot_lq: /data2/wei/vox-160-clean/LR
+    meta_info_file: basicsr/data/meta_info/vox_ijb_val.txt  ##########dododo
     # change to 'meta_info_REDSofficial4_test_GT' when use the official validation partition
     io_backend:
       type: disk

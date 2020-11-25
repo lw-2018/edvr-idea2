@@ -124,56 +124,12 @@ class Vimeo90KDataset(data.Dataset):
         img_lqs = torch.stack(img_results[0:-1], dim=0)
         img_gt = img_results[-1]
 
-        # img_lqs: (t, c, h, w)
-        # img_gt: (c, h, w)
-        # key: str
-#         try:
-#             flow_path = f'{img_gt_path}'[:-7]+'flow_160.npy'
-#             flow = np.load(flow_path,allow_pickle=True)
-#         except:
+
         flow_path = f'{img_gt_path}'[:-7]+'flow_40.npy'
         flow = np.load(flow_path,allow_pickle=True)
         flow = flow / 8.0
         flow = np.transpose(flow,[0,3,1,2])  #7 2 448 448
-        #print(flow.shape)
-        ### get 18
-#         ztm = np.load(path_flow,allow_pickle=True)
-#         result_7 = []
-#         for test in ztm:
-#             test = np.transpose(test, [2,1,0]) 
-#             width = test.shape[1]
-#             height = test.shape[2]
-#             ndarray=np.pad(test,((0,0),(1,1),(1,1)),'constant', constant_values=0)
-#             result=[]
-#             for i in range(0,3):
-#                 for j in range(0,3): 
-#                     result.append(ndarray[:,i:i+448,j:j+448])
-
-#             result = np.array(result).reshape(18,448,448)
-#             #result = np.repeat(result,8,axis=0)
-#             result_7.append(np.array(result))
-#         save_path = path_flow.replace('flow.npy','flow_7.npy')
-#         np.save(save_path,np.array(result_7))
-        ### get18
-        #return np.array(result_7)
-#         result_7 = []
-#         for test in flow:
-#             width = test.shape[1]
-#             height = test.shape[2]
-#             ndarray=np.pad(test,((0,0),(1,1),(1,1)),'constant', constant_values=0)
-#             result=[]
-#             for i in range(0,3):
-#                 for j in range(0,3): 
-#                     result.extend(ndarray[:,i:i+width,j:j+height])
-#             result = np.array(result)
-#             result = np.expand_dims(result,0).repeat(8,axis=0)
-#             result = result.reshape(144,width,height)
-#             result_7.append(result)
-#         result_7 = np.array(result_7).astype(np.float)
-#         flow=np.pad(flow,((0,0),(0,0),(1,1),(1,1)),'constant', constant_values=0)
-#    #     lq_offset = []
-#     #    lq_offset.append(img_lqs)
-#      #   lq_offset.append(np.array(result_7))
+        flow = []
         
         return {'lq': img_lqs, 'gt': img_gt, 'key': key, 'flow':flow}
 
