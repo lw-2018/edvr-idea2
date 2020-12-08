@@ -60,14 +60,20 @@ class EDVRModel(VideoBaseModel):
                 for name, param in self.net_g.named_parameters():
                     if 'fusion' not in name:
                         param.requires_grad = False
+
             elif current_iter == self.train_tsa_iter:
                 logger.warning('Train all the parameters.')
-                for param in self.net_g.parameters():
-                    param.requires_grad = True
+                for name, param in self.net_g.named_parameters():
+                    if('arcface' in name):
+                        param.requires_grad = False
+                    else:
+                        param.requires_grad = True
                 if isinstance(self.net_g, DistributedDataParallel):
                     logger.warning('Set net_g.find_unused_parameters = False.')
                     self.net_g.find_unused_parameters = False
 
+#             for name, param in self.net_g.named_parameters():
+#                 print(name)
         super(VideoBaseModel, self).optimize_parameters(current_iter)
 
 

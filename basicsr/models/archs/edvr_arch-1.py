@@ -1,7 +1,7 @@
 import torch
 from torch import nn as nn
 from torch.nn import functional as F
-from basicsr.models.archs.model import Backbone
+
 from basicsr.models.archs.arch_util import (DCNv2Pack, ResidualBlockNoBN,
                                             make_layer)
 
@@ -329,42 +329,7 @@ class PredeblurModule(nn.Module):
         for i in range(2, 5):
             feat_l1 = self.resblock_l1[i](feat_l1)
         return feat_l1
-    
-class Decoder(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(Decoder, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
-        self.conv_relu = nn.Sequential(
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True)
-            )
-    def forward(self, x1):
-        x1 = self.up(x1)
-        x1 = self.conv_relu(x1)
-        return x1
 
-
-class Upsample(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.decode4 = Decoder(512, 256)
-        self.decode3 = Decoder(256, 128)
-        self.decode2 = Decoder(128, 64)
-        self.decode1 = Decoder(64, 64)
-        self.decode0 = nn.Sequential(
-            nn.Conv2d(64, 32, kernel_size=3, padding=1, bias=False),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1, bias=False)
-            )
-        self.conv_last = nn.Conv2d(64, 3, 1)
-    def forward(self, x):
-        d4 = self.decode4(x) # 256,16,16
-        d3 = self.decode3(d4) # 256,32,32
-        d2 = self.decode2(d3) # 128,64,64
-        d1 = self.decode1(d2) # 64,128,128
-        d0 = self.decode0(d1)
-        out = self.conv_last(d0) # 1,256,256
-        return out
-    
 
 class EDVR(nn.Module):
     """EDVR network structure for video super-resolution.
@@ -420,42 +385,107 @@ class EDVR(nn.Module):
         else:
             self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
 
+        # extrat pyramid features
+        self.feature_extraction = make_layer(
+            ResidualBlockNoBN, num_extract_block, num_feat=num_feat)
+        self.conv_l2_1 = nn.Conv2d(num_feat, num_feat, 3, 2, 1)
+        self.conv_l2_2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
+        self.conv_l3_1 = nn.Conv2d(num_feat, num_feat, 3, 2, 1)
+        self.conv_l3_2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
+
+        # pcd and tsa module
+        self.pcd_align = PCDAlignment(
+            num_feat=num_feat, deformable_groups=deformable_groups)
+        if self.with_tsa:
+            self.fusion = TSAFusion(
+                num_feat=num_feat,
+                num_frame=num_frame,
+                center_frame_idx=self.center_frame_idx)
+        else:
+            self.fusion = nn.Conv2d(num_frame * num_feat, num_feat, 1, 1)
+
+        # reconstruction
+        self.reconstruction = make_layer(
+            ResidualBlockNoBN, num_reconstruct_block, num_feat=num_feat)
+        # upsample
+        self.upconv1 = nn.Conv2d(num_feat, num_feat * 4, 3, 1, 1)
+        self.upconv2 = nn.Conv2d(num_feat, 64 * 4, 3, 1, 1)
+        self.pixel_shuffle = nn.PixelShuffle(2)
+        self.conv_hr = nn.Conv2d(64, 64, 3, 1, 1)
+        self.conv_last = nn.Conv2d(64, 3, 3, 1, 1)
 
         # activation function
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
 
-        
-        self.Upsample_224 = torch.nn.Upsample(size=[112,112], scale_factor=None, mode='bilinear', align_corners=None)
-        self.arcface = Backbone(50,0.6,mode='ir_se')
-        self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
-        self.pixel_shuffle_7 = nn.PixelShuffle(7)
-        self.Upsample = Upsample()
     def forward(self, x):
         b, t, c, h, w = x.size()
-        aligned_feature = []
-        for i in range(t):
-            frame = x[:, i, :, :, :]
-
-            frame = self.Upsample_224(frame)
-            feature = self.arcface(frame)
-            aligned_feature.append(feature)
-
-        aligned_feat = torch.stack(aligned_feature, dim=1)  # (b, t, c, h, w)
-
-        avg_feat_gt = aligned_feat.mean(1)
-        avg_feat = avg_feat_gt.view(b,-1,1,1)
-        out = self.lrelu(self.pixel_shuffle_7(self.upconv1_7(avg_feat)))
-        out = self.Upsample(out)
-        
-        avg_feat_out = self.arcface(out)
-        
-  #      print(avg_feat_out.shape)
         if self.hr_in:
             assert h % 16 == 0 and w % 16 == 0, (
                 'The height and width must be multiple of 16.')
         else:
             assert h % 4 == 0 and w % 4 == 0, (
                 'The height and width must be multiple of 4.')
-    
 
-        return out,avg_feat_gt,avg_feat_out
+        x_center = x[:, self.center_frame_idx, :, :, :].contiguous()
+
+        # extract features for each frame
+        # L1
+        if self.with_predeblur:
+            feat_l1 = self.conv_1x1(self.predeblur(x.view(-1, c, h, w)))
+            if self.hr_in:
+                h, w = h // 4, w // 4
+        else:
+            feat_l1 = self.lrelu(self.conv_first(x.view(-1, c, h, w)))
+
+        feat_l1 = self.feature_extraction(feat_l1)
+        # L2
+        feat_l2 = self.lrelu(self.conv_l2_1(feat_l1))
+        feat_l2 = self.lrelu(self.conv_l2_2(feat_l2))
+        # L3
+        feat_l3 = self.lrelu(self.conv_l3_1(feat_l2))
+        feat_l3 = self.lrelu(self.conv_l3_2(feat_l3))
+
+        feat_l1 = feat_l1.view(b, t, -1, h, w)
+        feat_l2 = feat_l2.view(b, t, -1, h // 2, w // 2)
+        feat_l3 = feat_l3.view(b, t, -1, h // 4, w // 4)
+
+        # PCD alignment
+        ref_feat_l = [  # reference feature list
+            feat_l1[:, self.center_frame_idx, :, :, :].clone(),
+            feat_l2[:, self.center_frame_idx, :, :, :].clone(),
+            feat_l3[:, self.center_frame_idx, :, :, :].clone()
+        ]
+        aligned_feat = []
+        aligned_offset = []
+        aligned_mask = []
+        for i in range(t):
+            nbr_feat_l = [  # neighboring feature list
+                feat_l1[:, i, :, :, :].clone(), feat_l2[:, i, :, :, :].clone(),
+                feat_l3[:, i, :, :, :].clone()
+            ]
+            feature_frame , offset_frame, mask_frame = self.pcd_align(nbr_feat_l, ref_feat_l)
+            offset_frame = torch.stack(offset_frame,dim=1)
+            mask_frame = torch.stack(mask_frame,dim=1)
+            aligned_feat.append(feature_frame)
+            aligned_offset.append(offset_frame)
+            aligned_mask.append(mask_frame)
+        aligned_feat = torch.stack(aligned_feat, dim=1)  # (b, t, c, h, w)
+        
+        aligned_offset = torch.stack(aligned_offset,dim=1)
+        aligned_mask = torch.stack(aligned_mask,dim=1)
+        if not self.with_tsa:
+            aligned_feat = aligned_feat.view(b, -1, h, w)
+        feat = self.fusion(aligned_feat)
+
+        out = self.reconstruction(feat)
+        out = self.lrelu(self.pixel_shuffle(self.upconv1(out)))
+        out = self.lrelu(self.pixel_shuffle(self.upconv2(out)))
+        out = self.lrelu(self.conv_hr(out))
+        out = self.conv_last(out)
+        if self.hr_in:
+            base = x_center
+        else:
+            base = F.interpolate(
+                x_center, scale_factor=4, mode='bilinear', align_corners=False)
+        out += base
+        return out,aligned_offset,aligned_mask

@@ -25,14 +25,40 @@ class SRModel(BaseModel):
         self.print_network(self.net_g)
         self.offset_frame= []
         self.offset_mask = []
-        self.flow =[]
-        self.flow_7 = []
+        self.avg_feat_gt= []
+        self.avg_feat_out = []
+        
+
         # load pretrained models
         load_path = self.opt['path'].get('pretrain_model_g', None)
         if load_path is not None:
             self.load_network(self.net_g, load_path,
                               self.opt['path']['strict_load'])
+            
+        ##load arcface 
+        load_pth_name= '/home/wei/exp/EDVR/arcfacemodel/model_ir_se50.pth'
+        pretrain_dict = torch.load( load_pth_name,map_location=lambda storage, loc: storage)
+        # conv1_weight_new=np.zeros( (64,5,7,7) )
+        # conv1_weight_new[:,:3,:,:]=pretrain_dict['conv1.weight'].cpu().data
+        # pretrain_dict['conv1.weight']=torch.from_numpy(conv1_weight_new  )
 
+        state_dict = self.net_g.state_dict()
+        model_dict = state_dict
+        keys = state_dict.keys()
+    #    print('state_dict',state_dict)
+        for k, v in pretrain_dict.items():
+            # kk='backbone.'+k
+            kk = k
+            for key in keys:    
+                if kk in key:
+                    model_dict[key] = v
+                    break
+        state_dict.update(model_dict)
+        self.net_g.load_state_dict(state_dict)
+        
+               # param.requires_grad = True
+
+        
         if self.is_train:
             self.init_training_settings()
 
@@ -64,6 +90,14 @@ class SRModel(BaseModel):
                 **train_opt['offset_opt']).to(self.device)
         else:
             self.cri_offset = None
+            
+        if train_opt.get('id_opt'):
+            id_type = train_opt['id_opt'].pop('type')
+            cri_id_cls = getattr(loss_module, id_type)
+            self.cri_id = cri_id_cls(
+                **train_opt['id_opt']).to(self.device)
+        else:
+            self.cri_id = None
             
        # print(self.cri_offset)
         if self.cri_pix is None and self.cri_perceptual is None:
@@ -101,20 +135,27 @@ class SRModel(BaseModel):
 
     def optimize_parameters(self, current_iter):
         self.optimizer_g.zero_grad()
-        self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
+        #self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
         #print('max:offset :', self.offset_frames.max())
-
-        
+        self.output, self.avg_feat_gt,self.avg_feat_out = self.net_g(self.lq)
 
         l_total = 0
         loss_dict = OrderedDict()
         # pixel loss
-        if self.cri_pix:
+#        if self.cri_pix:
+        if None:
             l_pix = self.cri_pix(self.output, self.gt)
 #             if(int(current_iter/10000)%2==0):
 #                 l_total += l_pix
             l_total += l_pix
             loss_dict['l_pix'] = l_pix
+        
+        if self.cri_id:
+            l_id = self.cri_id(self.avg_feat_gt, self.avg_feat_out)
+#             if(int(current_iter/10000)%2==0):
+#                 l_total += l_pix
+            l_total += l_id
+            loss_dict['l_id'] = l_id
         # offset loss
         ######
         

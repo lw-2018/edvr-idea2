@@ -125,13 +125,8 @@ class Vimeo90KDataset(data.Dataset):
         img_gt = img_results[-1]
 
 
-        flow_path = f'{img_gt_path}'[:-7]+'flow_40.npy'
-        flow = np.load(flow_path,allow_pickle=True)
-        flow = flow / 8.0
-        flow = np.transpose(flow,[0,3,1,2])  #7 2 448 448
-        flow = []
         
-        return {'lq': img_lqs, 'gt': img_gt, 'key': key, 'flow':flow}
+        return {'lq': img_lqs, 'gt': img_gt, 'key': key}
 
     def __len__(self):
         return len(self.keys)

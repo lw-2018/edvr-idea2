@@ -1,7 +1,6 @@
 import importlib
 import mmcv
 from os import path as osp
-
 # automatically scan and import arch modules
 # scan all the files under the 'archs' folder and collect files ending with
 # '_arch.py'
