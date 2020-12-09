@@ -137,7 +137,7 @@ class SRModel(BaseModel):
         self.optimizer_g.zero_grad()
         #self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
         #print('max:offset :', self.offset_frames.max())
-        self.output, self.avg_feat_gt,self.avg_feat_out = self.net_g(self.lq)
+        self.output, self.avg_feat_gt, self.avg_feat_out = self.net_g(self.lq)
 
         l_total = 0
         loss_dict = OrderedDict()
@@ -283,6 +283,7 @@ class SRModel(BaseModel):
         out_dict = OrderedDict()
         out_dict['lq'] = self.lq.detach().cpu()
         out_dict['result'] = self.output[0].detach().cpu()
+      #  out_dict['gt'] = self.output[1].detach().cpu()
 #         out_flow = self.output[1].cpu().numpy()
 #         out_mask = self.output[2].cpu().numpy()
 

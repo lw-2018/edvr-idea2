@@ -37,6 +37,8 @@ def read_img_seq(path, require_mod_crop=False, scale=1):
     
     if require_mod_crop:
         imgs = [mod_crop(img, scale) for img in imgs]
+    if(len(path)==1):
+        imgs[0] = mmcv.imresize(imgs[0],(112,112))
     imgs = totensor(imgs, bgr2rgb=True, float32=True)
     imgs = torch.stack(imgs, dim=0)
     return imgs

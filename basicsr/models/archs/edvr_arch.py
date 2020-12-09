@@ -1,7 +1,7 @@
 import torch
 from torch import nn as nn
 from torch.nn import functional as F
-from basicsr.models.archs.model import Backbone
+from basicsr.models.archs.model import Backbone,MobileFaceNet
 from basicsr.models.archs.arch_util import (DCNv2Pack, ResidualBlockNoBN,
                                             make_layer)
 
@@ -426,6 +426,7 @@ class EDVR(nn.Module):
 
         
         self.Upsample_224 = torch.nn.Upsample(size=[112,112], scale_factor=None, mode='bilinear', align_corners=None)
+     #   self.arcface = Backbone(50,0.6,mode='ir_se')
         self.arcface = Backbone(50,0.6,mode='ir_se')
         self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
         self.pixel_shuffle_7 = nn.PixelShuffle(7)

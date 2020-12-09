@@ -100,6 +100,7 @@ class Vimeo90KDataset(data.Dataset):
             img_gt_path = self.gt_root / clip / seq / mid_img
         img_bytes = self.file_client.get(img_gt_path, 'gt')
         img_gt = mmcv.imfrombytes(img_bytes).astype(np.float32) / 255.
+        
         # get the neighboring LQ frames
         img_lqs = []
         for neighbor in self.neighbor_list:
@@ -114,16 +115,15 @@ class Vimeo90KDataset(data.Dataset):
         # randomly crop
         img_gt, img_lqs = paired_random_crop(img_gt, img_lqs, gt_size, scale,
                                              img_gt_path)
-
+        img_gt = mmcv.imresize(img_gt,(112,112))
         # augmentation - flip, rotate
         img_lqs.append(img_gt)
         img_results = augment(img_lqs, self.opt['use_flip'],
                               self.opt['use_rot'])
-
+        
         img_results = totensor(img_results)
         img_lqs = torch.stack(img_results[0:-1], dim=0)
         img_gt = img_results[-1]
-
 
         
         return {'lq': img_lqs, 'gt': img_gt, 'key': key}
