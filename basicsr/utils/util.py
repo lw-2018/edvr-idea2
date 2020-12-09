@@ -100,7 +100,7 @@ def crop_border(imgs, crop_border):
                         ...]
 
 
-def tensor2img(tensor, out_type=np.uint8, min_max=(0, 1)):
+def tensor2img(tensor, out_type=np.uint8, min_max=(-1, 1)):
     """Convert torch Tensors into image numpy arrays.
 
     After clamping to [min, max], values will be normalized to [0, 1].
@@ -149,6 +149,7 @@ def tensor2img(tensor, out_type=np.uint8, min_max=(0, 1)):
         else:
             raise TypeError('Only support 4D, 3D or 2D tensor. '
                             f'But received with dimension: {n_dim}')
+
         if out_type == np.uint8:
             # Unlike MATLAB, numpy.unit8() WILL NOT round by default.
             img_np = (img_np * 255.0).round()

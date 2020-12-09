@@ -7,6 +7,11 @@ from torch.utils import data as data
 import torch.nn.functional as F
 from basicsr.data.transforms import augment, paired_random_crop, totensor
 from basicsr.utils import FileClient, get_root_logger
+from torchvision import transforms as trans
+trans = trans.Compose([
+                    trans.ToTensor(),
+                    trans.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                ])
 
 
 class Vimeo90KDataset(data.Dataset):

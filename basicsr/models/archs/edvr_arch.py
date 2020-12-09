@@ -428,9 +428,12 @@ class EDVR(nn.Module):
         self.Upsample_224 = torch.nn.Upsample(size=[112,112], scale_factor=None, mode='bilinear', align_corners=None)
      #   self.arcface = Backbone(50,0.6,mode='ir_se')
         self.arcface = Backbone(50,0.6,mode='ir_se')
+        
+#         self.upconv1_7 =  nn.ConvTranspose2d(512, 512, kernel_size=1, stride=7)
         self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
         self.pixel_shuffle_7 = nn.PixelShuffle(7)
         self.Upsample = Upsample()
+        self.arcface.eval()
     def forward(self, x):
         b, t, c, h, w = x.size()
         aligned_feature = []

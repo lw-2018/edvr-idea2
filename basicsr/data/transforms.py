@@ -1,7 +1,11 @@
 import mmcv
 import random
 import torch
-
+import cv2
+from torchvision import transforms as trans
+trans = trans.Compose([
+                    trans.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                ])
 
 def mod_crop(img, scale):
     """Mod crop images, used during testing.
@@ -163,7 +167,11 @@ def totensor(imgs, bgr2rgb=True, float32=True):
     def _totensor(img, bgr2rgb, float32):
         if img.shape[2] == 3 and bgr2rgb:
             img = mmcv.bgr2rgb(img)
+            
+        #img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
         img = torch.from_numpy(img.transpose(2, 0, 1))
+        img = trans(img)
+
         if float32:
             img = img.float()
         return img

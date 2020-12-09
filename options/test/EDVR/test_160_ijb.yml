@@ -44,7 +44,7 @@ path:
   #pretrain_model_g: experiments/train_320_wo_off/models/net_g_175000.pth
   #pretrain_model_g: experiments/train_320_w_off_100/models/net_g_195000.pth
   #pretrain_model_g: experiments/train_320_w_off/models/net_g_110000.pth
-  pretrain_model_g: experiments/id_loss/models/net_g_330000.pth
+  pretrain_model_g: experiments/train_trans_id_loss/models/net_g_10000.pth
   strict_load: true
 # experiments/train_3d/models/net_g_280000.pth
 # experiments/train_3d/models/net_g_150000.pth
