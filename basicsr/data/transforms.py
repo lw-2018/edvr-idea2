@@ -4,6 +4,7 @@ import torch
 import cv2
 from torchvision import transforms as trans
 trans = trans.Compose([
+                    trans.ToTensor(),
                     trans.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
                 ])
 
@@ -169,7 +170,7 @@ def totensor(imgs, bgr2rgb=True, float32=True):
             img = mmcv.bgr2rgb(img)
             
         #img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
-        img = torch.from_numpy(img.transpose(2, 0, 1))
+        #img = torch.from_numpy(img.transpose(2, 0, 1))
         img = trans(img)
 
         if float32:

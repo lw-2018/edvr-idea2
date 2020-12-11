@@ -356,13 +356,14 @@ class Upsample(nn.Module):
             nn.Conv2d(32, 64, kernel_size=3, padding=1, bias=False)
             )
         self.conv_last = nn.Conv2d(64, 3, 1)
+        self.tanh = nn.Tanh()
     def forward(self, x):
         d4 = self.decode4(x) # 256,16,16
         d3 = self.decode3(d4) # 256,32,32
         d2 = self.decode2(d3) # 128,64,64
         d1 = self.decode1(d2) # 64,128,128
         d0 = self.decode0(d1)
-        out = self.conv_last(d0) # 1,256,256
+        out = self.tanh(self.conv_last(d0)) # 1,256,256
         return out
     
 
@@ -429,18 +430,19 @@ class EDVR(nn.Module):
      #   self.arcface = Backbone(50,0.6,mode='ir_se')
         self.arcface = Backbone(50,0.6,mode='ir_se')
         
-#         self.upconv1_7 =  nn.ConvTranspose2d(512, 512, kernel_size=1, stride=7)
-        self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
-        self.pixel_shuffle_7 = nn.PixelShuffle(7)
+        self.upconv1_7 =  nn.ConvTranspose2d(512, 512, kernel_size=7, stride=7)
+#         self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
+#         self.pixel_shuffle_7 = nn.PixelShuffle(7)
         self.Upsample = Upsample()
         self.arcface.eval()
     def forward(self, x):
         b, t, c, h, w = x.size()
         aligned_feature = []
+#         print('input:', torch.max(x),torch.min(x),torch.mean(x))
         for i in range(t):
-            frame = x[:, i, :, :, :]
-
+            frame = x[:, 4, :, :, :]
             frame = self.Upsample_224(frame)
+            return frame
             feature = self.arcface(frame)
             aligned_feature.append(feature)
 
@@ -448,11 +450,14 @@ class EDVR(nn.Module):
 
         avg_feat_gt = aligned_feat.mean(1)
         avg_feat = avg_feat_gt.view(b,-1,1,1)
-        out = self.lrelu(self.pixel_shuffle_7(self.upconv1_7(avg_feat)))
+        out = self.upconv1_7(avg_feat)
+#         out = self.pixel_shuffle_7(out)
+
+        out = self.lrelu(out)
         out = self.Upsample(out)
         
         avg_feat_out = self.arcface(out)
-        
+
   #      print(avg_feat_out.shape)
         if self.hr_in:
             assert h % 16 == 0 and w % 16 == 0, (
@@ -461,5 +466,5 @@ class EDVR(nn.Module):
             assert h % 4 == 0 and w % 4 == 0, (
                 'The height and width must be multiple of 4.')
     
-
+#         print('out:', torch.max(out),torch.min(out),torch.mean(out))
         return out,avg_feat_gt,avg_feat_out
