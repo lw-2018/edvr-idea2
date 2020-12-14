@@ -249,6 +249,7 @@ class SRModel(BaseModel):
                         save_img_path = osp.join(
                             self.opt['path']['visualization'], dataset_name,
                             f'{img_name}_{self.opt["name"]}.png')
+
                 mmcv.imwrite(sr_img, save_img_path)
 #                 np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy', visual['flow'])
 #                 np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy', visual['mask'])
@@ -283,6 +284,8 @@ class SRModel(BaseModel):
         out_dict = OrderedDict()
         out_dict['lq'] = self.lq.detach().cpu()
         out_dict['result'] = self.output[0].detach().cpu()
+        out_dict['embedding_gt'] = self.output[1].detach().cpu().numpy()
+        out_dict['embedding_out'] = self.output[2].detach().cpu().numpy()
       #  out_dict['gt'] = self.output[1].detach().cpu()
 #         out_flow = self.output[1].cpu().numpy()
 #         out_mask = self.output[2].cpu().numpy()

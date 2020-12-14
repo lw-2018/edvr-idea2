@@ -430,9 +430,9 @@ class EDVR(nn.Module):
      #   self.arcface = Backbone(50,0.6,mode='ir_se')
         self.arcface = Backbone(50,0.6,mode='ir_se')
         
-        self.upconv1_7 =  nn.ConvTranspose2d(512, 512, kernel_size=7, stride=7)
-#         self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
-#         self.pixel_shuffle_7 = nn.PixelShuffle(7)
+     #   self.upconv1_7 =  nn.ConvTranspose2d(512, 512, kernel_size=7, stride=7)
+        self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
+        self.pixel_shuffle_7 = nn.PixelShuffle(7)
         self.Upsample = Upsample()
         self.arcface.eval()
     def forward(self, x):
@@ -440,9 +440,9 @@ class EDVR(nn.Module):
         aligned_feature = []
 #         print('input:', torch.max(x),torch.min(x),torch.mean(x))
         for i in range(t):
-            frame = x[:, 4, :, :, :]
+            frame = x[:, i, :, :, :]
             frame = self.Upsample_224(frame)
-            return frame
+
             feature = self.arcface(frame)
             aligned_feature.append(feature)
 
@@ -451,7 +451,7 @@ class EDVR(nn.Module):
         avg_feat_gt = aligned_feat.mean(1)
         avg_feat = avg_feat_gt.view(b,-1,1,1)
         out = self.upconv1_7(avg_feat)
-#         out = self.pixel_shuffle_7(out)
+        out = self.pixel_shuffle_7(out)
 
         out = self.lrelu(out)
         out = self.Upsample(out)

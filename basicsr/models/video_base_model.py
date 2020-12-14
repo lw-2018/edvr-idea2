@@ -6,10 +6,10 @@ from copy import deepcopy
 from mmcv.runner import get_dist_info
 from os import path as osp
 from torch import distributed as dist
-
+import os
 from basicsr.models.sr_model import SRModel
 from basicsr.utils import ProgressBar, get_root_logger, tensor2img
-
+import numpy as np
 metric_module = importlib.import_module('basicsr.metrics')
 
 
@@ -88,7 +88,16 @@ class VideoBaseModel(SRModel):
                         save_img_path = osp.join(
                             self.opt['path']['visualization'],
                             folder, f'{img_name}.png')
-                mmcv.imwrite(result_img, save_img_path)
+   
+                np_save_img_path = save_img_path.replace('png','npy')
+                if not os.path.exists(osp.join(
+                            self.opt['path']['visualization'],
+                            folder)):
+                    os.makedirs(osp.join(
+                            self.opt['path']['visualization'],
+                            folder))
+                np.save(np_save_img_path,np.array([visuals['embedding_gt'],visuals['embedding_out']]))
+                #mmcv.imwrite(result_img, save_img_path)
             split_result = lq_path.split('/')
             img_name = (f'{split_result[-3]}_{split_result[-2]}_'
                         f'{split_result[-1].split(".")[0]}')
