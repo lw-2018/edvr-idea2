@@ -9,14 +9,12 @@ datasets:
   test:
     name: REDS4
     type: VideoTestVimeo90KDataset
-    dataroot_gt: /data2/wei/IJB-160/GT
-    #dataroot_lq: /data2/wei/vox-7-same/LR
-    dataroot_lq: /data2/wei/IJB-160/LR
-    #meta_info_file: basicsr/data/meta_info/vox_320_test.txt
-    #meta_info_file: basicsr/data/meta_info/vis_flow.txt
-    #meta_info_file: /home/wei/exp/data_process/best_ijb.txt
-    
-    meta_info_file: basicsr/data/meta_info/IJB_ori_test.txt
+    # dataroot_gt: /data2/wei/IJB-160/GT
+    # dataroot_lq: /data2/wei/IJB-160/LR
+    # meta_info_file: basicsr/data/meta_info/IJB_ori_test.txt
+    dataroot_gt: /data2/wei/vox-160/GT
+    dataroot_lq: /data2/wei/vox-160/LR
+    meta_info_file: basicsr/data/meta_info/test_160.txt
     io_backend:
       type: disk
 
