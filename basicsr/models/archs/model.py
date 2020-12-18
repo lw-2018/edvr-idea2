@@ -143,9 +143,10 @@ class Backbone(Module):
     def forward(self,x):
         x = self.input_layer(x)
         x = self.body(x)
+        feature_7x7 = x
         #print(x.shape)
         x = self.output_layer(x)
-        return l2_norm(x)
+        return l2_norm(x),feature_7x7
     
 class UpSample(Module):
     def __init__(self, num_layers, drop_ratio, mode='ir'):

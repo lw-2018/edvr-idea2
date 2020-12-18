@@ -336,7 +336,7 @@ class Decoder(nn.Module):
         self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
         self.conv_relu = nn.Sequential(
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.PReLU(out_channels)
+            nn.ReLU(inplace=True)
             )
         for m in self.conv_relu:
             classname = m.__class__.__name__
@@ -352,7 +352,7 @@ class Decoder(nn.Module):
 class Upsample(nn.Module):
     def __init__(self):
         super().__init__()
-        self.decode4 = Decoder(1024, 256)
+        self.decode4 = Decoder(512, 256)
         self.decode3 = Decoder(256, 128)
         self.decode2 = Decoder(128, 64)
         self.decode1 = Decoder(64, 64)
@@ -434,41 +434,33 @@ class EDVR(nn.Module):
      #   self.arcface = Backbone(50,0.6,mode='ir_se')
         self.arcface = Backbone(50,0.6,mode='ir_se')
         
-     #   self.upconv1_7 =  nn.ConvTranspose2d(512, 512, kernel_size=7, stride=7)
-        self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
-        self.pixel_shuffle_7 = nn.PixelShuffle(7)
+        self.upconv1_7 =  nn.ConvTranspose2d(512, 512, kernel_size=7, stride=7)
+#         self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
+#         self.pixel_shuffle_7 = nn.PixelShuffle(7)
         self.Upsample = Upsample()
         self.arcface.eval()
     def forward(self, x):
         b, t, c, h, w = x.size()
         aligned_feature = []
-        aligned_feature_7x7=[]
 #         print('input:', torch.max(x),torch.min(x),torch.mean(x))
         for i in range(t):
             frame = x[:, i, :, :, :]
             frame = self.Upsample_224(frame)
-            if(i==3):
+            if (i==3):
                 center_frame = frame
-            feature,feature_7x7 = self.arcface(frame)
-
+            feature = self.arcface(frame)
             aligned_feature.append(feature)
-            aligned_feature_7x7.append(feature_7x7)
-        
-
         aligned_feat = torch.stack(aligned_feature, dim=1)  # (b, t, c, h, w)
+
         avg_feat_gt = aligned_feat.mean(1)
         avg_feat = avg_feat_gt.view(b,-1,1,1)
+     #   out = self.upconv1_7(avg_feat)
+#         out = self.pixel_shuffle_7(out)
         out = avg_feat.repeat(1,1,7,7)
-        
-        aligned_feature_7x7 = torch.stack(aligned_feature_7x7, dim=1)  # (b, t, c, h, w)
-        aligned_feature_7x7 = aligned_feature_7x7.mean(1)
-        aligned_feature_7x7 = aligned_feature_7x7.view(b,-1,7,7)
-        out = torch.cat([out,aligned_feature_7x7],1)
-        
+        #out = self.lrelu(out)
         out = self.Upsample(out)
-        out += center_frame
-        avg_feat_out,_= self.arcface(out)
-
+        out +=center_frame
+        avg_feat_out = self.arcface(out)
   #      print(avg_feat_out.shape)
         if self.hr_in:
             assert h % 16 == 0 and w % 16 == 0, (
@@ -476,6 +468,5 @@ class EDVR(nn.Module):
         else:
             assert h % 4 == 0 and w % 4 == 0, (
                 'The height and width must be multiple of 4.')
-    
 #         print('out:', torch.max(out),torch.min(out),torch.mean(out))
         return out,avg_feat_gt,avg_feat_out
