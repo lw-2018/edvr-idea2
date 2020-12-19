@@ -1,5 +1,5 @@
 # name: test
-name: skyline_trans_id_loss_512_cos
+name: skyline_trans_id_loss_512_L1
 model_type: EDVRModel
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
