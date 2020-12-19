@@ -352,7 +352,7 @@ class Decoder(nn.Module):
 class Upsample(nn.Module):
     def __init__(self):
         super().__init__()
-        self.decode4 = Decoder(1024, 256)
+        self.decode4 = Decoder(512, 256)
         self.decode3 = Decoder(256, 128)
         self.decode2 = Decoder(128, 64)
         self.decode1 = Decoder(64, 64)
@@ -461,22 +461,15 @@ class EDVR(nn.Module):
         avg_feat = avg_feat_gt.view(b,-1,1,1)
         out = avg_feat.repeat(1,1,7,7)
         
-        aligned_feature_7x7 = torch.stack(aligned_feature_7x7, dim=1)  # (b, t, c, h, w)
-        aligned_feature_7x7 = aligned_feature_7x7.mean(1)
-        aligned_feature_7x7 = aligned_feature_7x7.view(b,-1,7,7)
-        out = torch.cat([out,aligned_feature_7x7],1)
+#         aligned_feature_7x7 = torch.stack(aligned_feature_7x7, dim=1)  # (b, t, c, h, w)
+#         aligned_feature_7x7 = aligned_feature_7x7.mean(1)
+#         aligned_feature_7x7 = aligned_feature_7x7.view(b,-1,7,7)
+#         out = torch.cat([out,aligned_feature_7x7],1)
         
         out = self.Upsample(out)
 #         out += center_frame
         avg_feat_out,_= self.arcface(out)
 
-  #      print(avg_feat_out.shape)
-        if self.hr_in:
-            assert h % 16 == 0 and w % 16 == 0, (
-                'The height and width must be multiple of 16.')
-        else:
-            assert h % 4 == 0 and w % 4 == 0, (
-                'The height and width must be multiple of 4.')
-    
-#         print('out:', torch.max(out),torch.min(out),torch.mean(out))
+
+
         return out,avg_feat_gt,avg_feat_out,center_embedding

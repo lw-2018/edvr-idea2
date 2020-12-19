@@ -1,5 +1,5 @@
 # name: test
-name: skyline_trans_id_loss_7x7_mse
+name: skyline_trans_id_loss_512_cos
 model_type: EDVRModel
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
@@ -117,11 +117,16 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 1e5
+  val_freq: !!float 1e4
   save_img: false
 
   metrics:
-    psnr: # metric name, can be arbitrary
+#     psnr: # metric name, can be arbitrary
+#       type: calculate_psnr
+#       crop_border: 0
+#       test_y_channel: false
+      
+    cosine_similarity: # metric name, can be arbitrary
       type: calculate_psnr
       crop_border: 0
       test_y_channel: false
