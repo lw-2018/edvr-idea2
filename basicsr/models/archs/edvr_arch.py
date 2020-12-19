@@ -435,7 +435,6 @@ class EDVR(nn.Module):
         self.arcface = Backbone(50,0.6,mode='ir_se')
         
      #   self.upconv1_7 =  nn.ConvTranspose2d(512, 512, kernel_size=7, stride=7)
-        self.upconv1_7 = nn.Conv2d(512, 512 * 49, 3, 1, 1)
         self.pixel_shuffle_7 = nn.PixelShuffle(7)
         self.Upsample = Upsample()
         self.arcface.eval()
@@ -444,13 +443,15 @@ class EDVR(nn.Module):
         aligned_feature = []
         aligned_feature_7x7=[]
 #         print('input:', torch.max(x),torch.min(x),torch.mean(x))
+        
         for i in range(t):
             frame = x[:, i, :, :, :]
             frame = self.Upsample_224(frame)
             if(i==3):
                 center_frame = frame
             feature,feature_7x7 = self.arcface(frame)
-
+            if(i==3):
+                center_embedding = feature
             aligned_feature.append(feature)
             aligned_feature_7x7.append(feature_7x7)
         
@@ -466,7 +467,7 @@ class EDVR(nn.Module):
         out = torch.cat([out,aligned_feature_7x7],1)
         
         out = self.Upsample(out)
-        out += center_frame
+#         out += center_frame
         avg_feat_out,_= self.arcface(out)
 
   #      print(avg_feat_out.shape)
@@ -478,4 +479,4 @@ class EDVR(nn.Module):
                 'The height and width must be multiple of 4.')
     
 #         print('out:', torch.max(out),torch.min(out),torch.mean(out))
-        return out,avg_feat_gt,avg_feat_out
+        return out,avg_feat_gt,avg_feat_out,center_embedding

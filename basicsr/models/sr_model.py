@@ -64,6 +64,7 @@ class SRModel(BaseModel):
 
     def init_training_settings(self):
         self.net_g.train()
+        self.net_g.arcface.eval()
         train_opt = self.opt['train']
 
         # define losses
@@ -137,7 +138,7 @@ class SRModel(BaseModel):
         self.optimizer_g.zero_grad()
         #self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
         #print('max:offset :', self.offset_frames.max())
-        self.output, self.avg_feat_gt, self.avg_feat_out = self.net_g(self.lq)
+        self.output, self.avg_feat_gt, self.avg_feat_out,_= self.net_g(self.lq)
 
         l_total = 0
         loss_dict = OrderedDict()
@@ -178,11 +179,7 @@ class SRModel(BaseModel):
             l_total += l_offset
             #print('hhhh',l_offset)
             loss_dict['l_offset'] = l_offset
-            
-
-
-
-
+        
         if self.cri_perceptual:
             l_percep, l_style = self.cri_perceptual(self.output, self.gt)
             if l_percep is not None:
@@ -192,6 +189,11 @@ class SRModel(BaseModel):
                 l_total += l_style
                 loss_dict['l_style'] = l_style
 
+        if True:
+            gt = self.avg_feat_gt/torch.norm(self.avg_feat_gt,2,1).reshape(-1,1).repeat(1,self.avg_feat_gt.shape[1])
+            out = self.avg_feat_out/torch.norm(self.avg_feat_out,2,1).reshape(-1,1).repeat(1,self.avg_feat_out.shape[1])
+            cos_similarity = torch.mean(torch.sum(gt*out,1))
+            loss_dict['cos_similarity'] = cos_similarity
         l_total.backward()
         self.optimizer_g.step()
 
@@ -286,15 +288,8 @@ class SRModel(BaseModel):
         out_dict['result'] = self.output[0].detach().cpu()
         out_dict['embedding_gt'] = self.output[1].detach().cpu().numpy()
         out_dict['embedding_out'] = self.output[2].detach().cpu().numpy()
-      #  out_dict['gt'] = self.output[1].detach().cpu()
-#         out_flow = self.output[1].cpu().numpy()
-#         out_mask = self.output[2].cpu().numpy()
+        out_dict['embedding_center'] = self.output[3].detach().cpu().numpy()
 
-#         out_dict['flow'] = out_flow
-#         out_dict['mask'] = out_mask
-        # visual
-#         np.save('/home/wei/exp/EDVR/flow_save_160/offset.npy',out_flow)
-#         np.save('/home/wei/exp/EDVR/flow_save_160/mask.npy',out_mask)
         if hasattr(self, 'gt'):
             out_dict['gt'] = self.gt.detach().cpu()
         return out_dict
