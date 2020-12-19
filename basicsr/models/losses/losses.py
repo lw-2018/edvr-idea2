@@ -17,12 +17,12 @@ def l1_loss(pred, target):
 
 @weighted_loss
 def mse_loss(pred, target):
-#      return F.mse_loss(pred, target, reduction='none')
+     return F.mse_loss(pred, target, reduction='none')
 # #     a = abs(pred-target)
 #     return torch.mean(torch.log(1+torch.exp(10*a)))
 #     return 1-F.cosine_similarity(pred,target)
 #     return 1-F.l1_loss(pred, target, reduction='none
-    return F.l1_loss(pred, target, reduction='none')
+#     return F.l1_loss(pred, target, reduction='none')
 
 
 
