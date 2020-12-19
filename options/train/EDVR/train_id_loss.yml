@@ -121,7 +121,12 @@ val:
   save_img: false
 
   metrics:
-    psnr: # metric name, can be arbitrary
+#     psnr: # metric name, can be arbitrary
+#       type: calculate_psnr
+#       crop_border: 0
+#       test_y_channel: false
+      
+    cosine_similarity: # metric name, can be arbitrary
       type: calculate_psnr
       crop_border: 0
       test_y_channel: false

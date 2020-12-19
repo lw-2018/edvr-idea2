@@ -105,18 +105,9 @@ class VideoBaseModel(SRModel):
                 # calculate metrics
                 opt_metric = deepcopy(self.opt['val']['metrics'])
                 for metric_idx, opt_ in enumerate(opt_metric.values()):
-                    out_emb= visuals['embedding_out']
-                    gt_emb = visuals['embedding_gt']
-                    
-                    gt = gt_emb/np.sqrt(np.sum(gt_emb ** 2, -1, keepdims=True))
-                    out = out_emb/np.sqrt(np.sum(out_emb ** 2, -1, keepdims=True))
-                    cos_similarity = np.mean(np.sum(gt*out,-1))
-                    result = cos_similarity
-                    
-#                     self.metric_results[name] += cos_similarity
-#                     metric_type = opt_.pop('type')
-#                     result = getattr(metric_module,
-#                                      metric_type)(result_img, gt_img, **opt_)
+                    metric_type = opt_.pop('type')
+                    result = getattr(metric_module,
+                                     metric_type)(result_img, gt_img, **opt_)
                     self.metric_results[folder][int(frame_idx),
                                                 metric_idx] += result
 #                     psnr = getattr(metric_module, metric_type)(result_img, gt_img, **opt_)
@@ -141,6 +132,7 @@ class VideoBaseModel(SRModel):
             if rank == 0:
                 self._log_validation_metric_values(current_iter, dataset_name,
                                                    tb_logger)
+
     def nondist_validation(self, dataloader, current_iter, tb_logger,
                            save_img):
         logger = get_root_logger()

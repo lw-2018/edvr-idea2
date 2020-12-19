@@ -204,7 +204,6 @@ class SRModel(BaseModel):
         with torch.no_grad():
             self.output = self.net_g(self.lq)
         self.net_g.train()
-        self.net_g.arcface.eval()
 
     def dist_validation(self, dataloader, current_iter, tb_logger, save_img):
         logger = get_root_logger()
@@ -232,7 +231,7 @@ class SRModel(BaseModel):
             if 'gt' in visuals:
                 gt_img = tensor2img([visuals['gt']])
                 del self.gt
-            
+
             # tentative for out of GPU memory
 #             del self.lq
 #             del self.output
@@ -260,19 +259,11 @@ class SRModel(BaseModel):
                 # calculate metrics
                 opt_metric = deepcopy(self.opt['val']['metrics'])
                 for name, opt_ in opt_metric.items():
-                    if('cosine' in name):
-                        out_emb= visuals['embedding_out']
-                        gt_emb = visuals['embedding_gt']
-                        gt = gt_emb/torch.norm(gt_emb,2,1).reshape(-1,1).repeat(1,gt_emb.shape[1])
-                        out = out_emb/torch.norm(out_emb,2,1).reshape(-1,1).repeat(1,out_emb.shape[1])
-                        cos_similarity = torch.mean(torch.sum(gt*out,1))
-                        self.metric_results[name] += cos_similarity
-            
-                    else:
-                        metric_type = opt_.pop('type')
-                        self.metric_results[name] += getattr(
-                            metric_module, metric_type)(sr_img, gt_img, **opt_)
-        
+                    metric_type = opt_.pop('type')
+                    self.metric_results[name] += getattr(
+                        metric_module, metric_type)(sr_img, gt_img, **opt_)
+
+
         if with_metrics:
             for metric in self.metric_results.keys():
                 self.metric_results[metric] /= (idx + 1)
