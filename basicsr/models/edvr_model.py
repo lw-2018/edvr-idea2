@@ -64,7 +64,7 @@ class EDVRModel(VideoBaseModel):
             elif current_iter == self.train_tsa_iter:
                 logger.warning('Train all the parameters.')
                 for name, param in self.net_g.named_parameters():
-                    if('arcface' in name):
+                    if('arcface' in name or 'classifier' in name):
                         param.requires_grad = False
                     else:
                         param.requires_grad = True

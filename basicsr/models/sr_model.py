@@ -1,6 +1,7 @@
 import importlib
 import mmcv
 import torch
+import torch.nn as nn
 from collections import OrderedDict
 from copy import deepcopy
 from os import path as osp
@@ -27,8 +28,8 @@ class SRModel(BaseModel):
         self.offset_mask = []
         self.avg_feat_gt= []
         self.avg_feat_out = []
-        
-
+        self.center_embedding = []
+        self.classifier_out = []
         # load pretrained models
         load_path = self.opt['path'].get('pretrain_model_g', None)
         if load_path is not None:
@@ -57,7 +58,9 @@ class SRModel(BaseModel):
         self.net_g.load_state_dict(state_dict)
         
                # param.requires_grad = True
-
+        fc_weight = np.load('fc_weights/weight.npy')
+        self.net_g.classifier.weight.data.copy_(torch.from_numpy(fc_weight))
+        self.net_g.classifier.weight.requires_grad = False
         
         if self.is_train:
             self.init_training_settings()
@@ -99,7 +102,8 @@ class SRModel(BaseModel):
                 **train_opt['id_opt']).to(self.device)
         else:
             self.cri_id = None
-            
+        
+        self.cri_classifier = nn.CrossEntropyLoss().to(self.device)
        # print(self.cri_offset)
         if self.cri_pix is None and self.cri_perceptual is None:
             raise ValueError('Both pixel and perceptual losses are None.')
@@ -133,12 +137,14 @@ class SRModel(BaseModel):
             self.gt = data['gt'].to(self.device)
         if 'flow' in data:
             self.flow = data['flow'].to(self.device)
+        if 'cls_label' in data:
+            self.cls_label = data['cls_label'].to(self.device)
 
     def optimize_parameters(self, current_iter):
         self.optimizer_g.zero_grad()
         #self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
         #print('max:offset :', self.offset_frames.max())
-        self.output, self.avg_feat_gt, self.avg_feat_out,_= self.net_g(self.lq)
+        self.output, self.avg_feat_gt, self.avg_feat_out,self.center_embedding,self.classifier_out= self.net_g(self.lq)
 
         l_total = 0
         loss_dict = OrderedDict()
@@ -159,7 +165,10 @@ class SRModel(BaseModel):
             loss_dict['l_id'] = l_id
         # offset loss
         ######
-        
+        if True:
+            l_cls = self.cri_classifier(self.classifier_out,self.cls_label)
+            l_total += l_cls
+            loss_dict['l_cls'] = l_id
        # weight  = (55000-20000)/50000.0
         #print(torch.mean(self.flow_7),torch.mean(self.flow))
         if False:

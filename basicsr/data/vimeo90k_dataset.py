@@ -81,7 +81,9 @@ class Vimeo90KDataset(data.Dataset):
         self.random_reverse = False
         logger = get_root_logger()
         logger.info(f'Random reverse is {self.random_reverse}.')
-
+        ###dic
+        self.dic_path = opt['dic_path']
+        self.dic = np.load(self.dic_path,allow_pickle=True).item()
     def __getitem__(self, index):
         if self.file_client is None:
             self.file_client = FileClient(
@@ -116,8 +118,9 @@ class Vimeo90KDataset(data.Dataset):
             img_bytes = self.file_client.get(img_lq_path, 'lq')
             img_lq = mmcv.imfrombytes(img_bytes).astype(np.float32) / 255.
             img_lqs.append(img_lq)
-
+#         print(img_lq_path)
         # randomly crop
+        
         img_gt, img_lqs = paired_random_crop(img_gt, img_lqs, gt_size, scale,
                                              img_gt_path)
         img_gt = mmcv.imresize(img_gt,(112,112))
@@ -130,8 +133,8 @@ class Vimeo90KDataset(data.Dataset):
         img_lqs = torch.stack(img_results[0:-1], dim=0)
         img_gt = img_results[-1]
 
-        
-        return {'lq': img_lqs, 'gt': img_gt, 'key': key}
+        cls_label = self.dic[clip+'/'+seq]
+        return {'lq': img_lqs, 'gt': img_gt, 'key': key,'cls_label':cls_label}
 
     def __len__(self):
         return len(self.keys)

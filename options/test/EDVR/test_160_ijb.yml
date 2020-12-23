@@ -1,4 +1,4 @@
-name: skyline_id_loss_7x7_L1_mse_ijb_b1
+name: test
 model_type: EDVRModel
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode

@@ -369,7 +369,7 @@ class Upsample(nn.Module):
         d0 = self.decode0(d1)
         out = self.conv_last(d0) # 1,256,256
         return out
-    
+
 
 class EDVR(nn.Module):
     """EDVR network structure for video super-resolution.
@@ -438,6 +438,8 @@ class EDVR(nn.Module):
         self.pixel_shuffle_7 = nn.PixelShuffle(7)
         self.Upsample = Upsample()
         self.arcface.eval()
+
+        self.classifier = nn.Linear(512,23993,bias=False)
     def forward(self, x):
         b, t, c, h, w = x.size()
         aligned_feature = []
@@ -479,4 +481,5 @@ class EDVR(nn.Module):
                 'The height and width must be multiple of 4.')
     
 #         print('out:', torch.max(out),torch.min(out),torch.mean(out))
-        return out,avg_feat_gt,avg_feat_out,center_embedding
+        classifier = self.classifier(avg_feat_out)
+        return out,avg_feat_gt,avg_feat_out,center_embedding,classifier
