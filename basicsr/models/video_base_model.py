@@ -97,7 +97,7 @@ class VideoBaseModel(SRModel):
                             self.opt['path']['visualization'],
                             folder))
                 np.save(np_save_img_path,np.array([visuals['embedding_gt'],visuals['embedding_out'],visuals['embedding_center']]))
-                #mmcv.imwrite(result_img, save_img_path)
+                mmcv.imwrite(result_img, save_img_path)
             split_result = lq_path.split('/')
             img_name = (f'{split_result[-3]}_{split_result[-2]}_'
                         f'{split_result[-1].split(".")[0]}')
