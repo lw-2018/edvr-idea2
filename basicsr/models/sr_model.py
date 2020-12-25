@@ -13,6 +13,7 @@ import torch.nn.functional as F
 loss_module = importlib.import_module('basicsr.models.losses')
 metric_module = importlib.import_module('basicsr.metrics')
 
+from torch.nn import Linear, Conv2d, BatchNorm1d, BatchNorm2d, PReLU, ReLU, Sigmoid, Dropout2d, Dropout, AvgPool2d, MaxPool2d, AdaptiveAvgPool2d, Sequential, Module, Parameter
 
 class SRModel(BaseModel):
     """Base SR model for single image super-resolution."""
@@ -61,7 +62,9 @@ class SRModel(BaseModel):
         fc_weight = np.load('fc_weights/weight.npy')
         self.net_g.classifier.weight.data.copy_(torch.from_numpy(fc_weight))
         self.net_g.classifier.weight.requires_grad = False
-        
+#         fc_weight = np.transpose(fc_weight,[1,0])
+#         self.net_g.classifier.kernel = Parameter(torch.from_numpy(fc_weight).to(self.device))
+#         self.net_g.classifier.kernel.requires_grad = False
         if self.is_train:
             self.init_training_settings()
 
@@ -144,7 +147,7 @@ class SRModel(BaseModel):
         self.optimizer_g.zero_grad()
         #self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
         #print('max:offset :', self.offset_frames.max())
-        self.output, self.avg_feat_gt, self.avg_feat_out,self.center_embedding,self.classifier_out= self.net_g(self.lq)
+        self.output, self.avg_feat_gt, self.avg_feat_out,self.center_embedding,self.classifier_out= self.net_g(self.lq,self.cls_label)
 
         l_total = 0
         loss_dict = OrderedDict()
@@ -211,7 +214,7 @@ class SRModel(BaseModel):
     def test(self):
         self.net_g.eval()
         with torch.no_grad():
-            self.output = self.net_g(self.lq)
+            self.output = self.net_g(self.lq,None)
         self.net_g.train()
         self.net_g.arcface.eval()
 
