@@ -152,7 +152,7 @@ class SRModel(BaseModel):
             loss_dict['l_pix'] = l_pix
         
         if self.cri_id:
-            l_id = self.cri_id(self.avg_feat_gt, self.avg_feat_out)
+            l_id = self.cri_id(self.avg_feat_out,self.avg_feat_gt)
 #             if(int(current_iter/10000)%2==0):
 #                 l_total += l_pix
             l_total += l_id
