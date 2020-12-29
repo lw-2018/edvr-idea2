@@ -60,11 +60,11 @@ class SRModel(BaseModel):
         
                # param.requires_grad = True
         fc_weight = np.load('fc_weights/weight.npy')
-        self.net_g.classifier.weight.data.copy_(torch.from_numpy(fc_weight))
-        self.net_g.classifier.weight.requires_grad = False
-#         fc_weight = np.transpose(fc_weight,[1,0])
-#         self.net_g.classifier.kernel = Parameter(torch.from_numpy(fc_weight).to(self.device))
-#         self.net_g.classifier.kernel.requires_grad = False
+#         self.net_g.classifier.weight.data.copy_(torch.from_numpy(fc_weight))
+#         self.net_g.classifier.weight.requires_grad = False
+        fc_weight = np.transpose(fc_weight,[1,0])
+        self.net_g.classifier.kernel = Parameter(torch.from_numpy(fc_weight).to(self.device))
+        self.net_g.classifier.kernel.requires_grad = False
         if self.is_train:
             self.init_training_settings()
 
