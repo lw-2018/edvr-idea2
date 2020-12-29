@@ -171,7 +171,7 @@ class SRModel(BaseModel):
         if True:
             l_cls = self.cri_classifier(self.classifier_out,self.cls_label)
             l_total += l_cls
-            loss_dict['l_cls'] = l_id
+            loss_dict['l_cls'] = l_cls
        # weight  = (55000-20000)/50000.0
         #print(torch.mean(self.flow_7),torch.mean(self.flow))
         if False:
