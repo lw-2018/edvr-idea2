@@ -1,5 +1,5 @@
 # name: test
-name: skyline_trans_id_loss_7x7_zzd_lm_2400_ijb_b16
+name: skyline_trans_id_loss_7x7_mse_norm_lm_3900_b16
 model_type: EDVRModel
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
@@ -24,7 +24,7 @@ datasets:
     dataroot_gt: /data2/wei/vox-lm/GT
     dataroot_lq: /data2/wei/vox-lm/LR
     dataroot_flow: ~
-    meta_info_file: basicsr/data/meta_info/vox_2400_train.txt  #############dododo
+    meta_info_file: basicsr/data/meta_info/vox_3900_train.txt  #############dododo
     val_partition: Vimeo90KDateset # set to 'official' when use the official validation partition
     io_backend:
       type: disk
@@ -109,8 +109,8 @@ train:
 
   scheduler:
     type: CosineAnnealingRestartLR
-    periods: [1000000]
-    restart_weights: [1]
+    periods: [100000, 100000, 200000, 200000, 400000]
+    restart_weights: [1, 0.5, 0.5, 0.5, 0.5]
     eta_min: !!float 1e-7
 
   total_iter: 1000000
