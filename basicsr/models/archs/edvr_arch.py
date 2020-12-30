@@ -480,7 +480,7 @@ class EDVR(nn.Module):
         self.Upsample = Upsample()
         self.arcface.eval()
     #self.Arcface_loss = Arcface(embedding_size=512, classnum=23993,  s=64., m=0.5)
-        self.classifier = Arcface(embedding_size=512, classnum=23993,  s=64., m=0.5)
+        self.classifier = Arcface(embedding_size=512, classnum=63518,  s=64., m=0.5)
        # self.classifier = nn.Linear(512,23993,bias=False)
     def forward(self, x,label):
         b, t, c, h, w = x.size()

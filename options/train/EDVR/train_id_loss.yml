@@ -1,5 +1,5 @@
 # name: test
-name: skyline_trans_id_loss_7x7_arcface_log
+name: skyline_trans_id_loss_7x7_2400_arcface_log
 model_type: EDVRModel
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
@@ -25,7 +25,7 @@ datasets:
     dataroot_lq: /data2/wei/vox-lm/LR
     dic_path: fc_weights/dic.npy
     dataroot_flow: ~
-    meta_info_file: basicsr/data/meta_info/vox_1100_train.txt  #############dododo
+    meta_info_file: basicsr/data/meta_info/vox_2400_train.txt  #############dododo
     val_partition: Vimeo90KDateset # set to 'official' when use the official validation partition
     io_backend:
       type: disk
