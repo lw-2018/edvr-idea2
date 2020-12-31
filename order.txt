@@ -42,4 +42,4 @@ CUDA_VISIBLE_DEVICES=0 python basicsr/train.py -opt options/train/EDVR/train_320
 
 CUDA_VISIBLE_DEVICES=2 python basicsr/train.py -opt options/train/EDVR/train_id_loss.yml
 
-CUDA_VISIBLE_DEVICES=2 python basicsr/test.py -opt options/test/EDVR/test_160_ijb.yml 
+CUDA_VISIBLE_DEVICES=0 python basicsr/test.py -opt options/test/EDVR/test_160_ijb.yml 

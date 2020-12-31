@@ -335,7 +335,8 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
         self.conv_relu = nn.Sequential(
-            nn.utils.spectral_norm(nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)),
+#             nn.utils.spectral_norm(nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.PReLU(out_channels)
             )
         for m in self.conv_relu:
