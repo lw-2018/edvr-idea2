@@ -138,14 +138,22 @@ class SRModel(BaseModel):
         self.optimizer_g.zero_grad()
         #self.output, self.offset_frames,self.mask_frames = self.net_g(self.lq)
         #print('max:offset :', self.offset_frames.max())
-        self.output, self.avg_feat_gt, self.avg_feat_out,_= self.net_g(self.lq)
-
+        self.output, self.avg_feat_gt, self.avg_feat_out,_,argmax_index= self.net_g(self.lq)
         l_total = 0
         loss_dict = OrderedDict()
+
         # pixel loss
 #        if self.cri_pix:
-        if None:
-            l_pix = self.cri_pix(self.output, self.gt)
+#         print(self.lq.shape)
+#         print(self.lq[:,argmax_index].shape)
+
+        best_lq = []
+        for i in range(self.lq.shape[0]):
+            best_lq.append(self.lq[i,argmax_index[i]])
+        best_lq = torch.stack(best_lq, dim=0)
+
+        if True:
+            l_pix = self.cri_pix(self.output, best_lq)*0.01
 #             if(int(current_iter/10000)%2==0):
 #                 l_total += l_pix
             l_total += l_pix

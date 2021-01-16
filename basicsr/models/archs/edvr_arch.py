@@ -459,10 +459,12 @@ class EDVR(nn.Module):
 
         aligned_feat = torch.stack(aligned_feature, dim=1)  # (b, t, c, h, w)
         avg_feat_gt = aligned_feat.mean(1)
-        
-        print(avg_feat_gt.shape)
-        
         avg_feat_gt = F.normalize(avg_feat_gt)
+        ###计算maxargindex
+        max_index = torch.argmax(torch.sum(avg_feat_gt.view(b,1,-1)*aligned_feat,2),1)
+#         print(max_index)
+        ###
+        
         avg_feat = avg_feat_gt.view(b,-1,1,1)
         out = avg_feat.repeat(1,1,7,7)
         
@@ -484,4 +486,6 @@ class EDVR(nn.Module):
                 'The height and width must be multiple of 4.')
     
 #         print('out:', torch.max(out),torch.min(out),torch.mean(out))
-        return out,avg_feat_gt,avg_feat_out,center_embedding
+        out = F.interpolate(
+        out, [40,40], mode='bilinear', align_corners=False)
+        return out,avg_feat_gt,avg_feat_out,center_embedding,max_index
