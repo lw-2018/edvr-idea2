@@ -2,7 +2,7 @@ import torch
 from torch import nn as nn
 from torch.nn import functional as F
 from basicsr.models.archs.model import Backbone,MobileFaceNet
-from basicsr.models.archs.arch_util import (DCNv2Pack, ResidualBlockNoBN,
+from basicsr.models.archs.arch_util import (DCNv2Pack,DCNv2Pack_pre, ResidualBlockNoBN,
                                             make_layer)
 
 
@@ -422,33 +422,41 @@ class PreDcn(nn.Module):
         return feat, offset_frame, mask_frame
 
 class Pcd_alignment(nn.Module):
-    def __init__(self,num_feat=64,group=8):
+    def __init__(self,
+                 num_in_ch=3,
+                 num_out_ch=3,
+                 num_feat=64,
+                 num_frame=7,
+                 deformable_groups=8,
+                 num_extract_block=5,
+                 num_reconstruct_block=5,):
         super(Pcd_alignment,self).__init__()
         
-        self.PreDcn = PreDcn(num_feat=num_feat, deformable_groups=group)
+        self.PreDcn = PreDcn(num_feat=num_feat, deformable_groups=deformable_groups)
 #         self.with_predeblur = with_predeblur
 #         self.with_tsa = with_tsa
 
         # extract features for each frame
-        if self.with_predeblur:
-            self.predeblur = PredeblurModule(
-                num_feat=num_feat, hr_in=self.hr_in)
-            self.conv_1x1 = nn.Conv2d(num_feat, num_feat, 1, 1)
-        else:
-            self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
-
+#         if self.with_predeblur:
+#             self.predeblur = PredeblurModule(
+#                 num_feat=num_feat, hr_in=self.hr_in)
+#             self.conv_1x1 = nn.Conv2d(num_feat, num_feat, 1, 1)
+#         else:
+        self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
 
         # activation function
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+        self.feature_extraction = make_layer(
+            ResidualBlockNoBN, num_extract_block, num_feat=num_feat)
         # reconstruction
         self.reconstruction = make_layer(
             ResidualBlockNoBN, num_reconstruct_block, num_feat=num_feat)
         # upsample
-
+        self.fusion = nn.Conv2d(num_frame * num_feat, num_feat, 1, 1)
         self.conv_hr = nn.Conv2d(64, 64, 3, 1, 1)
         self.conv_last = nn.Conv2d(64, 3, 3, 1, 1)
 
-    def forward(self,x,argmax):
+    def forward(self,x,argmax_index):
         b, t, c, h, w = x.size()
         
         x_center = []
@@ -487,19 +495,20 @@ class Pcd_alignment(nn.Module):
             feature_frame , offset_frame, mask_frame = self.PreDcn(nbr_feat_l, ref_feat_l_pre)
 #             offset_frame = torch.stack(offset_frame,dim=1)
 #             mask_frame = torch.stack(mask_frame,dim=1)
-#             aligned_feat.append(feature_frame)
+            aligned_feat.append(feature_frame)
 #             aligned_offset.append(offset_frame)
 #             aligned_mask.append(mask_frame)
             
         feat_l1 = torch.stack(aligned_feat, dim=1)  # (b, t, c, h, w)
 
-        aligned_feat = aligned_feat.view(b, -1, h, w)
+        feat_l1 = feat_l1.view(b, -1, h, w)
 
-        feat = self.fusion(aligned_feat)
+        feat = self.fusion(feat_l1)
 
         out = self.reconstruction(feat)
         out = self.conv_last(out)
         out += x_center
+        return out
 class EDVR(nn.Module):
     """EDVR network structure for video super-resolution.
 
@@ -554,11 +563,9 @@ class EDVR(nn.Module):
         else:
             self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
 
-
         # activation function
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
-
-        
+        self.conv_last = nn.Conv2d(6, 3, 3, 1, 1)
         self.Upsample_224 = torch.nn.Upsample(size=[112,112], scale_factor=None, mode='bilinear', align_corners=None)
      #   self.arcface = Backbone(50,0.6,mode='ir_se')
         self.arcface = Backbone(50,0.6,mode='ir_se')
@@ -576,6 +583,7 @@ class EDVR(nn.Module):
         aligned_feature_7x7=[]
 #         print('input:', torch.max(x),torch.min(x),torch.mean(x))
         x_dcn = []
+
         for i in range(t):
             frame = x[:, i, :, :, :]
             frame = self.Upsample_224(frame)
@@ -583,19 +591,24 @@ class EDVR(nn.Module):
             if(i==3):
                 center_frame = frame
             feature,feature_7x7 = self.arcface(frame)
-            if(i==3):
-                center_embedding = feature
+#             if(i==3):
+#                 center_embedding = feature
             aligned_feature.append(feature)
             aligned_feature_7x7.append(feature_7x7)
-        x_dcn = torch.stack(aligned_feature, dim=1)
+        x_dcn = torch.stack(x_dcn, dim=1)
         aligned_feat = torch.stack(aligned_feature, dim=1)  # (b, t, c, h, w)
+        all_feat = aligned_feat.clone()
         avg_feat_gt = aligned_feat.mean(1)
         avg_feat_gt = F.normalize(avg_feat_gt)
         ###计算maxargindex
         max_index = torch.argmax(torch.sum(avg_feat_gt.view(b,1,-1)*aligned_feat,2),1)
 #         print(max_index)
         ###
-        
+        center_embedding = []
+        for i in range(b):
+            center_embedding.append(all_feat[i,max_index[i]])
+        center_embedding = torch.stack(center_embedding, dim=0)
+      
         avg_feat = avg_feat_gt.view(b,-1,1,1)
         out = avg_feat.repeat(1,1,7,7)
         
@@ -609,7 +622,10 @@ class EDVR(nn.Module):
         avg_feat_out,_= self.arcface(out)
         
         out_dcn = self.Pcd_alignment(x_dcn,max_index)
-        print(out_dcn.shape)
+        
+        out = torch.cat([out,out_dcn],dim=1)
+        out = self.conv_last(out)
+        out_out = out.clone()
         out = F.interpolate(
         out, [40,40], mode='bilinear', align_corners=False)
-        return out,avg_feat_gt,avg_feat_out,center_embedding,max_index
+        return out_out,avg_feat_gt,avg_feat_out,center_embedding,max_index
