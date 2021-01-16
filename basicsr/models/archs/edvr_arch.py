@@ -459,6 +459,9 @@ class EDVR(nn.Module):
 
         aligned_feat = torch.stack(aligned_feature, dim=1)  # (b, t, c, h, w)
         avg_feat_gt = aligned_feat.mean(1)
+        
+        print(avg_feat_gt.shape)
+        
         avg_feat_gt = F.normalize(avg_feat_gt)
         avg_feat = avg_feat_gt.view(b,-1,1,1)
         out = avg_feat.repeat(1,1,7,7)
