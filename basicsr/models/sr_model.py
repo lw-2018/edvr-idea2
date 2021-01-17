@@ -153,7 +153,7 @@ class SRModel(BaseModel):
         best_lq = torch.stack(best_lq, dim=0)
 
         if True:
-            l_pix = self.cri_pix(self.output, best_lq)*0.01
+            l_pix = self.cri_pix(self.output, best_lq)*0.001
 #             if(int(current_iter/10000)%2==0):
 #                 l_total += l_pix
             l_total += l_pix
