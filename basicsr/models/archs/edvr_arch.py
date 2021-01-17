@@ -619,13 +619,15 @@ class EDVR(nn.Module):
         
         out = self.Upsample(out)
 #         out += center_frame
-        avg_feat_out,_= self.arcface(out)
         
         out_dcn = self.Pcd_alignment(x_dcn,max_index)
         
         out = torch.cat([out,out_dcn],dim=1)
         out = self.conv_last(out)
+        
+        avg_feat_out,_= self.arcface(out)
+        
         out_out = out.clone()
         out = F.interpolate(
         out, [40,40], mode='bilinear', align_corners=False)
-        return out_out,avg_feat_gt,avg_feat_out,center_embedding,max_index
+        return out,avg_feat_gt,avg_feat_out,center_embedding,max_index
